@@ -80,7 +80,40 @@ function cargarCategorias() {
     <option value="" disabled selected>Selecciona una categoría</option>
     ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
   `;
+   // Mostrar lista con botones para eliminar
+  const lista = $('listaCategorias');
+  if (lista) {
+    lista.innerHTML = categorias.map((cat, i) => `
+      <div class="categoria-item">
+        <span>${cat}</span>
+        <button onclick="borrarCategoria(${i})">🗑️</button>
+      </div>
+    `).join('');
+  }
 }
+
+function eliminarCategoriaSeleccionada() {
+  const select = $('categoria');
+  const selected = select.value;
+
+  if (!selected) {
+    alert('Selecciona una categoría primero.');
+    return;
+  }
+
+  const confirmacion = confirm(`¿Eliminar la categoría "${selected}"?`);
+  if (!confirmacion) return;
+
+  const index = categorias.indexOf(selected);
+  if (index !== -1) {
+    categorias.splice(index, 1);
+    localStorage.setItem('categorias', JSON.stringify(categorias));
+    cargarCategorias();
+    alert(`Categoría "${selected}" eliminada.`);
+  }
+}
+
+
 
 // ==========================
 // MANEJO DE PRODUCTOS
