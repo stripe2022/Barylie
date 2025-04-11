@@ -1,3 +1,4 @@
+// app.js
 // ==========================
 // VARIABLES GLOBALES
 // ==========================
@@ -58,18 +59,15 @@ function calcularStock() {
 // ==========================
 // CRUD DE CATEGORÍAS
 // ==========================
-
-let categorias = JSON.parse(localStorage.getItem('categorias')) || [];
-
 function addCategoria() {
-  const input = document.getElementById('nuevaCategoria');
+  const input = $('nuevaCategoria');
   const nueva = input.value.trim();
 
   if (nueva && !categorias.includes(nueva)) {
     categorias.push(nueva);
     localStorage.setItem('categorias', JSON.stringify(categorias));
     cargarCategorias();
-    document.getElementById('categoria').value = nueva;  // Selecciona automáticamente
+    $('categoria').value = nueva;
     input.value = '';
   } else {
     alert('Categoría no válida o ya existe.');
@@ -77,18 +75,12 @@ function addCategoria() {
 }
 
 function cargarCategorias() {
-  const select = document.getElementById('categoria');
+  const select = $('categoria');
   select.innerHTML = `
     <option value="" disabled selected>Selecciona una categoría</option>
     ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
   `;
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  cargarCategorias();
-});
-
-
 
 // ==========================
 // MANEJO DE PRODUCTOS
@@ -115,9 +107,11 @@ $('productForm').onsubmit = e => {
   };
   if (index) productos[index] = producto;
   else productos.push(producto);
+
   localStorage.setItem('productos', JSON.stringify(productos));
   alert('Producto guardado');
   resetForm();
+  buscarProductos(); // <- 🆕 Refresca productos luego de guardar
 };
 
 function buscarProductos() {
@@ -148,6 +142,10 @@ function editarProducto(i) {
   $('precioVenta').value = p.precioVenta;
   $('preview').src = p.foto;
   $('productIndex').value = i;
+
+  calcularPreciosAutomáticamente(); // 🆕 Corrige fórmulas
+  calcularStock();
+
   showScreen('add');
 }
 
@@ -185,8 +183,9 @@ function scanCode() {
     config,
     (decodedText) => {
       $('result').innerText = `Código escaneado: ${decodedText}`;
-      html5QrCode.stop();
-      $('reader').style.display = "none";
+      html5QrCode.stop().then(() => {
+        $('reader').style.display = "none";
+      });
     },
     (errorMessage) => {
       console.warn(`Error escaneando: ${errorMessage}`);
@@ -206,20 +205,6 @@ function capturePhoto() {
       video.srcObject = stream;
     });
 }
-/*function capturePhoto() {
-  document.getElementById('fotoInput').click();
-}
-
-document.getElementById('fotoInput').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    document.getElementById('preview').src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-});*/
 
 function takePhoto() {
   const video = $('video');
@@ -237,4 +222,4 @@ function closeCamera() {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
   }
-            }
+}
