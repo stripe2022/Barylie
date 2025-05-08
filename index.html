@@ -65,12 +65,14 @@
     <div id="stockResultado"></div>
   </section>
 
-  <!-- Cámara modal -->
-  <div id="cameraModal" class="modal hidden">
-    <video id="video" autoplay></video>
+<!-- Cámara modal -->
+<div id="cameraModal" class="modal hidden">
+  <video id="video" autoplay playsinline></video>
+  <div class="modal-buttons">
     <button onclick="takePhoto()">Capturar</button>
     <button onclick="closeCamera()">Cerrar</button>
   </div>
+</div>
 
   <script src="app.js"></script>
 </body>
