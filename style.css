@@ -1,0 +1,86 @@
+body {
+  font-family: sans-serif;
+  background: #fff;
+  color: #000;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #111;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+nav button {
+  font-size: 1.2em;
+  margin: 5px;
+  padding: 10px;
+  background: #eee;
+  border: none;
+  border-radius: 5px;
+}
+
+.screen {
+  padding: 15px;
+}
+
+.hidden {
+  display: none;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+}
+
+input, select, textarea {
+  width: 100%;
+  font-size: 1.1em;
+  padding: 8px;
+  margin-top: 5px;
+}
+
+button {
+  padding: 10px;
+  font-size: 1.1em;
+  margin: 5px 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+img#preview {
+  width: 100px;
+  margin-top: 10px;
+  display: block;
+}
+
+#resultados, #stockResultado {
+  margin-top: 10px;
+}
+
+.product-card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.product-card img {
+  width: 80px;
+  height: auto;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+    }
