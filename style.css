@@ -74,7 +74,7 @@ img#preview {
   height: auto;
 }
 
-.modal {
+/*.modal {
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
@@ -98,7 +98,7 @@ img#preview {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 90%;
+  width: 90%;*/
   max-width: 300px;
 }
 
