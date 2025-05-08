@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Inventario Almacén PWA</title>
+</head>
+<body>
+  <header>
+    <h1>Inventario Offline</h1>
+    <nav>
+      <button onclick="showScreen('add')">➕ Añadir</button>
+      <button onclick="showScreen('search')">🔍 Buscar</button>
+      <button onclick="showScreen('stock')">📦 Movimientos</button>
+    </nav>
+  </header>
+
+  <!-- Pantalla Añadir Producto -->
+  <section id="addScreen" class="screen">
+    <h2>Añadir Producto</h2>
+    <form id="productForm">
+      <input type="hidden" id="productIndex" />
+      <label>Código:
+        <input type="text" id="codigo" required />
+        <button type="button" onclick="scanCode()">Escanear</button>
+      </label>
+      <label>Nombre: <input type="text" id="nombre" required /></label>
+      <label>Categoría:
+        <select id="categoria"></select>
+        <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
+        <button type="button" onclick="addCategoria()">Añadir Categoría</button>
+      </label>
+      <label>Descripción:
+        <textarea id="descripcion"></textarea>
+      </label>
+      <label>Cantidad: <input type="number" id="cantidad" required /></label>
+      <label>Precio Costo: <input type="number" id="precioCosto" required /></label>
+      <label>Precio Venta: <input type="number" id="precioVenta" required /></label>
+      <label>Foto:
+        <button type="button" onclick="capturePhoto()">Añadir Foto</button>
+        <img id="preview" />
+      </label>
+      <div class="actions">
+        <button type="submit">Guardar</button>
+        <button type="button" onclick="resetForm()">Cancelar</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Pantalla Buscar Producto -->
+  <section id="searchScreen" class="screen hidden">
+    <h2>Buscar Producto</h2>
+    <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
+    <button onclick="scanCode(true)">Escanear</button>
+    <div id="resultados"></div>
+  </section>
+
+  <!-- Pantalla Movimientos -->
+  <section id="stockScreen" class="screen hidden">
+    <h2>Movimientos de Inventario</h2>
+    <input type="text" id="buscarStock" placeholder="Buscar producto..." oninput="buscarStock()" />
+    <button onclick="scanCode(false, true)">Escanear</button>
+    <div id="stockResultado"></div>
+  </section>
+
+  <!-- Cámara modal -->
+  <div id="cameraModal" class="modal hidden">
+    <video id="video" autoplay></video>
+    <button onclick="takePhoto()">Capturar</button>
+    <button onclick="closeCamera()">Cerrar</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+  </html>
