@@ -38,10 +38,7 @@ function scanCode() {
         console.error("Fallo al iniciar el escaneo", err);
       });
 }
-function scanCode() {
-  alert("Función llamada"); // Prueba
-  // resto del código...
-}
+
 
 function addCategoria() {
   const nueva = $('nuevaCategoria').value.trim();
