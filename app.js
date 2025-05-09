@@ -13,6 +13,31 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
   $(id + 'Screen').classList.remove('hidden');
 }
+function scanCode() {
+      const html5QrCode = new Html5Qrcode("reader");
+      const config = {
+        fps: 10,
+        qrbox: 250,
+        facingMode: "user" // cámara frontal
+      };
+
+      document.getElementById("reader").style.display = "block";
+
+      html5QrCode.start(
+        { facingMode: "user" },
+        config,
+        (decodedText, decodedResult) => {
+          document.getElementById("result").innerText = `Código escaneado: ${decodedText}`;
+          html5QrCode.stop();
+          document.getElementById("reader").style.display = "none";
+        },
+        (errorMessage) => {
+          console.warn(`Error escaneando: ${errorMessage}`);
+        }
+      ).catch(err => {
+        console.error("Fallo al iniciar el escaneo", err);
+      });
+}
 
 function addCategoria() {
   const nueva = $('nuevaCategoria').value.trim();
