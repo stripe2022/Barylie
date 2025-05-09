@@ -34,6 +34,16 @@ label {
   display: block;
   margin: 10px 0;
 }
+.fila-doble {
+  display: flex;
+  gap: 10px; /* Espacio entre los campos */
+}
+
+.fila-doble label {
+  flex: 1; /* Cada label ocupa el 50% */
+  display: flex;
+  flex-direction: column;
+}
 
 input, select, textarea {
   width: 100%;
