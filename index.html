@@ -6,6 +6,7 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
   <title>Inventario Almacén PWA</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
 </head>
 <body>
   <header>
@@ -23,8 +24,10 @@
     <form id="productForm">
       <input type="hidden" id="productIndex" />
       <label>Código:
-        <input type="text" id="codigo" required />
+        <input type="text" id="reader" required />
         <button type="button" onclick="scanCode()">Escanear</button>
+  <div id="reader" style="display:none;"></div>
+  <p id="result"></p>
       </label>
       <label>Nombre: <input type="text" id="nombre" required /></label>
       <label>Categoría:
