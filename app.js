@@ -4,11 +4,32 @@ let currentStream = null;
 
 const $ = id => document.getElementById(id);
 
+/*window.onload = () => {
+  cargarCategorias();
+  buscarProductos();
+};*/
 window.onload = () => {
   cargarCategorias();
   buscarProductos();
-};
 
+  // Calcular precios cuando cambian los campos
+  $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
+  $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
+};
+function calcularPreciosAutomáticamente() {
+  const precioOriginal = parseFloat($('precioOriginal').value);
+  const tasa = parseFloat($('tasa').value);
+
+  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
+    const costo = precioOriginal * tasa * 2;
+    const venta = costo * 1.3;
+    $('precioCosto').value = costo.toFixed(2);
+    $('precioVenta').value = venta.toFixed(2);
+  } else {
+    $('precioCosto').value = '';
+    $('precioVenta').value = '';
+  }
+}
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
   $(id + 'Screen').classList.remove('hidden');
