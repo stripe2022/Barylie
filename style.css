@@ -59,7 +59,10 @@ label {
   flex-direction: column;
   text-align: center;
 }
-
+.cantidadCentro label input {
+  width: 100%;
+  box-sizing: border-box;
+}
 input, select, textarea {
   width: 100%;
   font-size: 1.1em;
