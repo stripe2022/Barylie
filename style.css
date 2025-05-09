@@ -44,6 +44,10 @@ label {
   display: flex;
   flex-direction: column;
 }
+.fila-doble label input {
+  width: 100%;
+  box-sizing: border-box;
+}
 
 input, select, textarea {
   width: 100%;
