@@ -48,6 +48,10 @@ label {
   width: 100%;
   box-sizing: border-box;
 }
+.fila-doble input {
+  text-align: center;
+  vertical-align: middle;
+  }
 .cantidadCentro {
   display: flex;
   justify-content: center;
