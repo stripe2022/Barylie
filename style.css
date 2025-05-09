@@ -41,10 +41,10 @@ input, select, textarea {
   padding: 8px;
   margin-top: 5px;
 }
-#reader {
+/*#reader {
       width: 300px;
       margin-top: 10px;
-}
+}*/
 
 button {
   padding: 10px;
@@ -102,7 +102,7 @@ img#preview {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 90%;*/
+  width: 90%;
   max-width: 300px;
 }
 
@@ -114,4 +114,4 @@ img#preview {
   font-size: 1.2em;
   border: none;
   border-radius: 8px;
-}
+}*/
