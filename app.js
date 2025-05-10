@@ -45,10 +45,10 @@ function calcularPreciosAutomáticamente() {
 }
 
 function calcularStock() {
-  const caja = parseFloat($('cajas').value);
+  const cajas = parseFloat($('cajas').value);
   const cantidad = parseFloat($('cantidad').value);
 
-  if (!isNaN(caja) && !isNaN(cantidad)) {
+  if (!isNaN(cajas) && !isNaN(cantidad)) {
     $('stock').value = cajas * cantidad;
   } else {
     $('stock').value = '';
