@@ -1,34 +1,4 @@
-/*let productos = JSON.parse(localStorage.getItem('productos') || '[]');
-let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
-let currentStream = null;
-
-const $ = id => document.getElementById(id);
-
-/*window.onload = () => {
-  cargarCategorias();
-  buscarProductos();
-};
-/*window.onload = () => {
-  cargarCategorias();
-  buscarProductos();
-
-  // Calcular precios cuando cambian los campos
-  $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
-  $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
-};*/
-/*window.onload = () => {
-  cargarCategorias();
-  buscarProductos();
-
-  // Listeners para cálculo automático de precios
-  $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
-  $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
-  $('cantidad').addEventListener('input', () => {
-    calcularPreciosAutomáticamente();
-    calcularStock();
-  });*/
-
-  // Listeners para cálculo automático de stock
+ // Listeners para cálculo automático de stock
   $('caja').addEventListener('input', calcularStock);
 };
 function calcularStock() {
