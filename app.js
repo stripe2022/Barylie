@@ -55,14 +55,14 @@ function calcularPreciosAutomáticamente() {
     $('precioCosto').value = '';
     $('precioVenta').value = '';
   }
-}*/
+}
 let productos = JSON.parse(localStorage.getItem('productos') || '[]');
 let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
 let currentStream = null;
 
 const $ = id => document.getElementById(id);
 
-window.onload = () => {
+/*window.onload = () => {
   cargarCategorias();
   buscarProductos();
 
@@ -70,7 +70,7 @@ window.onload = () => {
   $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
   $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
   $('cantidad').addEventListener('input', calcularPreciosAutomáticamente);
-};
+};*/
 
 function calcularPreciosAutomáticamente() {
   const precioOriginal = parseFloat($('precioOriginal').value);
