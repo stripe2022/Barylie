@@ -59,32 +59,34 @@ function calcularStock() {
 // CRUD DE CATEGORÍAS
 // ==========================
 
-// Inicializar las categorías desde localStorage, o crear una nueva lista si no existe
 let categorias = JSON.parse(localStorage.getItem('categorias')) || [];
 
-// Función para añadir una nueva categoría
 function addCategoria() {
-  const inputCategoria = document.getElementById('nuevaCategoria');
-  const nueva = inputCategoria.value.trim();
+  const input = document.getElementById('nuevaCategoria');
+  const nueva = input.value.trim();
 
   if (nueva && !categorias.includes(nueva)) {
     categorias.push(nueva);
     localStorage.setItem('categorias', JSON.stringify(categorias));
     cargarCategorias();
-    inputCategoria.value = '';
+    document.getElementById('categoria').value = nueva;  // Selecciona automáticamente
+    input.value = '';
   } else {
     alert('Categoría no válida o ya existe.');
   }
 }
 
-// Función para cargar las categorías en el select
 function cargarCategorias() {
   const select = document.getElementById('categoria');
-  select.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+  select.innerHTML = `
+    <option value="" disabled selected>Selecciona una categoría</option>
+    ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+  `;
 }
 
-// Cargar las categorías al iniciar la página
-cargarCategorias();
+document.addEventListener('DOMContentLoaded', () => {
+  cargarCategorias();
+});
 
 
 
