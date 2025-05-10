@@ -52,7 +52,7 @@ label {
   text-align: center;
   vertical-align: middle;
   }
-/*.cantidadCentro {
+.cantidadCentro {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -70,7 +70,7 @@ label {
 .cantidadCentro input {
   text-align: center;
   vertical-align: middle;
-}*/
+}
 input, select, textarea {
   width: 100%;
   font-size: 1.1em;
