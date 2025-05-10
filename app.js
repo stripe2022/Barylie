@@ -206,7 +206,7 @@ function capturePhoto() {
       video.srcObject = stream;
     });
 }
-function capturePhoto() {
+/*function capturePhoto() {
   document.getElementById('fotoInput').click();
 }
 
@@ -219,7 +219,7 @@ document.getElementById('fotoInput').addEventListener('change', function () {
     document.getElementById('preview').src = e.target.result;
   };
   reader.readAsDataURL(file);
-});
+});*/
 
 function takePhoto() {
   const video = $('video');
