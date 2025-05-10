@@ -1,47 +1,32 @@
- // Listeners para cálculo automático de stock
-  $('caja').addEventListener('input', calcularStock);
-};
-function calcularStock() {
-  const caja = parseFloat($('caja').value);
-  const cantidad = parseFloat($('cantidad').value);
-
-  if (!isNaN(caja) && !isNaN(cantidad)) {
-    const stock = caja * cantidad;
-    $('stock').value = stock;
-  } else {
-    $('stock').value = '';
-  }
-}
-function calcularPreciosAutomáticamente() {
-  const precioOriginal = parseFloat($('precioOriginal').value);
-  const tasa = parseFloat($('tasa').value);
-
-  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
-    const costo = precioOriginal * tasa * 2;
-    const venta = costo * 1.3;
-    $('precioCosto').value = costo.toFixed(2);
-    $('precioVenta').value = venta.toFixed(2);
-  } else {
-    $('precioCosto').value = '';
-    $('precioVenta').value = '';
-  }
-}
+// ==========================
+// VARIABLES GLOBALES
+// ==========================
 let productos = JSON.parse(localStorage.getItem('productos') || '[]');
 let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
 let currentStream = null;
 
 const $ = id => document.getElementById(id);
 
+// ==========================
+// INICIALIZACIÓN
+// ==========================
 window.onload = () => {
   cargarCategorias();
   buscarProductos();
 
-  // Calcular precios automáticamente al cambiar campos
+  // Listeners para cálculo automático
   $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
   $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
-  $('cantidad').addEventListener('input', calcularPreciosAutomáticamente);
+  $('cantidad').addEventListener('input', () => {
+    calcularPreciosAutomáticamente();
+    calcularStock();
+  });
+  $('caja').addEventListener('input', calcularStock);
 };
 
+// ==========================
+// FUNCIONES DE CÁLCULO
+// ==========================
 function calcularPreciosAutomáticamente() {
   const precioOriginal = parseFloat($('precioOriginal').value);
   const tasa = parseFloat($('tasa').value);
@@ -60,38 +45,20 @@ function calcularPreciosAutomáticamente() {
   }
 }
 
-// ... (el resto del código queda igual)
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-  $(id + 'Screen').classList.remove('hidden');
-}
-function scanCode() {
-      const html5QrCode = new Html5Qrcode("reader");
-      const config = {
-        fps: 10,
-        qrbox: 250,
-        facingMode: "user" // cámara frontal
-      };
+function calcularStock() {
+  const caja = parseFloat($('caja').value);
+  const cantidad = parseFloat($('cantidad').value);
 
-      document.getElementById("reader").style.display = "block";
-
-      html5QrCode.start(
-        { facingMode: "user" },
-        config,
-        (decodedText, decodedResult) => {
-          document.getElementById("result").innerText = `Código escaneado: ${decodedText}`;
-          html5QrCode.stop();
-          document.getElementById("reader").style.display = "none";
-        },
-        (errorMessage) => {
-          console.warn(`Error escaneando: ${errorMessage}`);
-        }
-      ).catch(err => {
-        console.error("Fallo al iniciar el escaneo", err);
-      });
+  if (!isNaN(caja) && !isNaN(cantidad)) {
+    $('stock').value = caja * cantidad;
+  } else {
+    $('stock').value = '';
+  }
 }
 
-
+// ==========================
+// CRUD DE CATEGORÍAS
+// ==========================
 function addCategoria() {
   const nueva = $('nuevaCategoria').value.trim();
   if (nueva && !categorias.includes(nueva)) {
@@ -107,6 +74,9 @@ function cargarCategorias() {
   sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
 }
 
+// ==========================
+// MANEJO DE PRODUCTOS
+// ==========================
 function resetForm() {
   $('productForm').reset();
   $('preview').src = '';
@@ -117,7 +87,7 @@ $('productForm').onsubmit = e => {
   e.preventDefault();
   const index = $('productIndex').value;
   const producto = {
-    id: Date.now(),
+    id: index ? productos[index].id : Date.now(),
     codigo: $('codigo').value,
     nombre: $('nombre').value,
     categoria: $('categoria').value,
@@ -136,7 +106,9 @@ $('productForm').onsubmit = e => {
 
 function buscarProductos() {
   const q = $('buscarInput').value.toLowerCase();
-  const res = productos.filter(p => p.nombre.toLowerCase().includes(q) || p.codigo.includes(q));
+  const res = productos.filter(p =>
+    p.nombre.toLowerCase().includes(q) || p.codigo.includes(q)
+  );
   $('resultados').innerHTML = res.map((p, i) => `
     <div class="product-card">
       <img src="${p.foto}" />
@@ -171,6 +143,43 @@ function borrarProducto(i) {
   }
 }
 
+// ==========================
+// MANEJO DE VISTAS
+// ==========================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+  $(id + 'Screen').classList.remove('hidden');
+}
+
+// ==========================
+// CÁMARA Y ESCÁNER QR
+// ==========================
+function scanCode() {
+  const html5QrCode = new Html5Qrcode("reader");
+  const config = {
+    fps: 10,
+    qrbox: 250,
+    facingMode: "user"
+  };
+
+  $('reader').style.display = "block";
+
+  html5QrCode.start(
+    { facingMode: "user" },
+    config,
+    (decodedText) => {
+      $('result').innerText = `Código escaneado: ${decodedText}`;
+      html5QrCode.stop();
+      $('reader').style.display = "none";
+    },
+    (errorMessage) => {
+      console.warn(`Error escaneando: ${errorMessage}`);
+    }
+  ).catch(err => {
+    console.error("Fallo al iniciar el escaneo", err);
+  });
+}
+
 function capturePhoto() {
   const modal = $('cameraModal');
   const video = $('video');
@@ -198,4 +207,4 @@ function closeCamera() {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
   }
-}
+            }
