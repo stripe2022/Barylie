@@ -72,7 +72,7 @@ label {
   vertical-align: middle;
 }
 input, select, textarea {
-  width: 100%;
+  width: 80%;
   font-size: 1.1em;
   padding: 8px;
   margin-top: 5px;
