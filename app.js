@@ -1,4 +1,4 @@
-let productos = JSON.parse(localStorage.getItem('productos') || '[]');
+/*let productos = JSON.parse(localStorage.getItem('productos') || '[]');
 let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
 let currentStream = null;
 
@@ -7,7 +7,7 @@ const $ = id => document.getElementById(id);
 /*window.onload = () => {
   cargarCategorias();
   buscarProductos();
-};*/
+};
 window.onload = () => {
   cargarCategorias();
   buscarProductos();
@@ -29,7 +29,42 @@ function calcularPreciosAutomáticamente() {
     $('precioCosto').value = '';
     $('precioVenta').value = '';
   }
+}*/
+let productos = JSON.parse(localStorage.getItem('productos') || '[]');
+let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
+let currentStream = null;
+
+const $ = id => document.getElementById(id);
+
+window.onload = () => {
+  cargarCategorias();
+  buscarProductos();
+
+  // Calcular precios automáticamente al cambiar campos
+  $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
+  $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
+  $('cantidad').addEventListener('input', calcularPreciosAutomáticamente);
+};
+
+function calcularPreciosAutomáticamente() {
+  const precioOriginal = parseFloat($('precioOriginal').value);
+  const tasa = parseFloat($('tasa').value);
+  const cantidad = parseFloat($('cantidad').value);
+
+  if (!isNaN(precioOriginal) && !isNaN(tasa) && !isNaN(cantidad) && cantidad !== 0) {
+    const pcs = precioOriginal / cantidad;
+    const precioCosto = pcs * tasa * 2;
+    const precioVenta = precioCosto * 1.3;
+
+    $('precioCosto').value = precioCosto.toFixed(2);
+    $('precioVenta').value = precioVenta.toFixed(2);
+  } else {
+    $('precioCosto').value = '';
+    $('precioVenta').value = '';
+  }
 }
+
+// ... (el resto del código queda igual)
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
   $(id + 'Screen').classList.remove('hidden');
