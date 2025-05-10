@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
   $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
   $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
 };*/
-window.onload = () => {
+/*window.onload = () => {
   cargarCategorias();
   buscarProductos();
 
@@ -26,7 +26,7 @@ window.onload = () => {
   $('cantidad').addEventListener('input', () => {
     calcularPreciosAutomáticamente();
     calcularStock();
-  });
+  });*/
 
   // Listeners para cálculo automático de stock
   $('caja').addEventListener('input', calcularStock);
@@ -62,7 +62,7 @@ let currentStream = null;
 
 const $ = id => document.getElementById(id);
 
-/*window.onload = () => {
+window.onload = () => {
   cargarCategorias();
   buscarProductos();
 
@@ -70,7 +70,7 @@ const $ = id => document.getElementById(id);
   $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
   $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
   $('cantidad').addEventListener('input', calcularPreciosAutomáticamente);
-};*/
+};
 
 function calcularPreciosAutomáticamente() {
   const precioOriginal = parseFloat($('precioOriginal').value);
