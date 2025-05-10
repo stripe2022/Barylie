@@ -58,20 +58,7 @@ function calcularStock() {
 // ==========================
 // CRUD DE CATEGORÍAS
 // ==========================
-/*function addCategoria() {
-  const nueva = $('nuevaCategoria').value.trim();
-  if (nueva && !categorias.includes(nueva)) {
-    categorias.push(nueva);
-    localStorage.setItem('categorias', JSON.stringify(categorias));
-    cargarCategorias();
-    $('nuevaCategoria').value = '';
-  }
-}
 
-function cargarCategorias() {
-  const sel = $('categoria');
-  sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-}*/
 // Inicializar las categorías desde localStorage, o crear una nueva lista si no existe
 let categorias = JSON.parse(localStorage.getItem('categorias')) || [];
 
@@ -99,16 +86,7 @@ function cargarCategorias() {
 // Cargar las categorías al iniciar la página
 cargarCategorias();
 
-// Función para cargar las categorías en el select
-function cargarCategorias() {
-  const sel = $('categoria');
-  
-  // Generar las opciones para el select y añadirlas
-  sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-}
 
-// Cargar categorías al iniciar la página
-cargarCategorias();
 
 // ==========================
 // MANEJO DE PRODUCTOS
