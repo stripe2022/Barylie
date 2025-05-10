@@ -58,7 +58,7 @@ function calcularStock() {
 // ==========================
 // CRUD DE CATEGORÍAS
 // ==========================
-function addCategoria() {
+/*function addCategoria() {
   const nueva = $('nuevaCategoria').value.trim();
   if (nueva && !categorias.includes(nueva)) {
     categorias.push(nueva);
@@ -71,7 +71,47 @@ function addCategoria() {
 function cargarCategorias() {
   const sel = $('categoria');
   sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+}*/
+// Asegúrate de definir el atajo para el selector
+function $(id) {
+  return document.getElementById(id);
 }
+
+// Inicializa las categorías, cargándolas de localStorage si ya existen
+let categorias = JSON.parse(localStorage.getItem('categorias')) || [];
+
+// Función para añadir una nueva categoría
+function addCategoria() {
+  const nueva = $('nuevaCategoria').value.trim();  // Obtener el valor del input y eliminar espacios extra
+
+  // Verificar si el valor no está vacío y si la categoría no existe ya
+  if (nueva && !categorias.includes(nueva)) {
+    categorias.push(nueva);  // Añadir la nueva categoría al array
+
+    // Guardar el array actualizado en el localStorage
+    localStorage.setItem('categorias', JSON.stringify(categorias));
+
+    // Volver a cargar las categorías en el select
+    cargarCategorias();
+
+    // Limpiar el campo de texto
+    $('nuevaCategoria').value = '';
+  } else {
+    // Si el valor está vacío o la categoría ya existe
+    alert('Categoría no válida o ya existe.');
+  }
+}
+
+// Función para cargar las categorías en el select
+function cargarCategorias() {
+  const sel = $('categoria');
+  
+  // Generar las opciones para el select y añadirlas
+  sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+}
+
+// Cargar categorías al iniciar la página
+cargarCategorias();
 
 // ==========================
 // MANEJO DE PRODUCTOS
