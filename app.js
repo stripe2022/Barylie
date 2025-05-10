@@ -10,19 +10,18 @@ const $ = id => document.getElementById(id);
 // ==========================
 // INICIALIZACIÓN
 // ==========================
-window.onload = () => {
+document.addEventListener('DOMContentLoaded', () => {
   cargarCategorias();
   buscarProductos();
 
-  // Listeners para cálculo automático
-  $('precioOriginal').addEventListener('input', calcularPreciosAutomáticamente);
-  $('tasa').addEventListener('input', calcularPreciosAutomáticamente);
-  $('cantidad').addEventListener('input', () => {
+  $('precioOriginal')?.addEventListener('input', calcularPreciosAutomáticamente);
+  $('tasa')?.addEventListener('input', calcularPreciosAutomáticamente);
+  $('cantidad')?.addEventListener('input', () => {
     calcularPreciosAutomáticamente();
     calcularStock();
   });
-  $('caja').addEventListener('input', calcularStock);
-};
+  $('cajas')?.addEventListener('input', calcularStock);
+});
 
 // ==========================
 // FUNCIONES DE CÁLCULO
@@ -46,11 +45,11 @@ function calcularPreciosAutomáticamente() {
 }
 
 function calcularStock() {
-  const caja = parseFloat($('caja').value);
+  const caja = parseFloat($('cajas').value);
   const cantidad = parseFloat($('cantidad').value);
 
   if (!isNaN(caja) && !isNaN(cantidad)) {
-    $('stock').value = caja * cantidad;
+    $('stock').value = cajas * cantidad;
   } else {
     $('stock').value = '';
   }
