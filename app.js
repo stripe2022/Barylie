@@ -72,35 +72,32 @@ function cargarCategorias() {
   const sel = $('categoria');
   sel.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
 }*/
-// Asegúrate de definir el atajo para el selector
-function $(id) {
-  return document.getElementById(id);
-}
-
-// Inicializa las categorías, cargándolas de localStorage si ya existen
+// Inicializar las categorías desde localStorage, o crear una nueva lista si no existe
 let categorias = JSON.parse(localStorage.getItem('categorias')) || [];
 
 // Función para añadir una nueva categoría
 function addCategoria() {
-  const nueva = $('nuevaCategoria').value.trim();  // Obtener el valor del input y eliminar espacios extra
+  const inputCategoria = document.getElementById('nuevaCategoria');
+  const nueva = inputCategoria.value.trim();
 
-  // Verificar si el valor no está vacío y si la categoría no existe ya
   if (nueva && !categorias.includes(nueva)) {
-    categorias.push(nueva);  // Añadir la nueva categoría al array
-
-    // Guardar el array actualizado en el localStorage
+    categorias.push(nueva);
     localStorage.setItem('categorias', JSON.stringify(categorias));
-
-    // Volver a cargar las categorías en el select
     cargarCategorias();
-
-    // Limpiar el campo de texto
-    $('nuevaCategoria').value = '';
+    inputCategoria.value = '';
   } else {
-    // Si el valor está vacío o la categoría ya existe
     alert('Categoría no válida o ya existe.');
   }
 }
+
+// Función para cargar las categorías en el select
+function cargarCategorias() {
+  const select = document.getElementById('categoria');
+  select.innerHTML = categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+}
+
+// Cargar las categorías al iniciar la página
+cargarCategorias();
 
 // Función para cargar las categorías en el select
 function cargarCategorias() {
