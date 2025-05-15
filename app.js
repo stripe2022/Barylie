@@ -1,42 +1,111 @@
-// app.js
-// ==========================
-// VARIABLES GLOBALES
-// ==========================
-let productos = JSON.parse(localStorage.getItem('productos') || '[]');
-let categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
-let currentStream = null;
+// app.js conectado a db.js para IndexedDB modular
+import {
+  abrirDB,
+  guardarProducto,
+  obtenerTodos,
+  obtenerPorId,
+  borrarPorId
+} from './db.js';
 
+let db;
 const $ = id => document.getElementById(id);
 
-// ==========================
 // INICIALIZACIÓN
-// ==========================
-document.addEventListener('DOMContentLoaded', () => {
-  cargarCategorias();
-  buscarProductos();
 
-  $('precioOriginal')?.addEventListener('input', calcularPreciosAutomáticamente);
-  $('tasa')?.addEventListener('input', calcularPreciosAutomáticamente);
-  $('cantidad')?.addEventListener('input', () => {
-    calcularPreciosAutomáticamente();
-    calcularStock();
+document.addEventListener('DOMContentLoaded', () => {
+  abrirDB(instance => {
+    db = instance;
+    cargarCategorias();
+    buscarProductos();
   });
-  $('cajas')?.addEventListener('input', calcularStock);
 });
 
-// ==========================
-// FUNCIONES DE CÁLCULO
-// ==========================
+// FORMULARIO
+$('productForm').onsubmit = e => {
+  e.preventDefault();
+  const id = $('productIndex').value ? parseInt($('productIndex').value) : Date.now();
+
+  const producto = {
+    id,
+    codigo: $('codigo').value,
+    referencia: $('referencia').value,
+    nombre: $('nombre').value,
+    categoria: $('categoria').value,
+    descripcion: $('descripcion').value,
+    proveedor: $('proveedor').value,
+    cantidad: parseInt($('cantidad').value),
+    cajas: parseInt($('cajas').value),
+    precioOriginal: parseFloat($('precioOriginal').value),
+    tasa: parseFloat($('tasa').value),
+    precioCosto: parseFloat($('precioCosto').value),
+    precioVenta: parseFloat($('precioVenta').value),
+    stock: parseFloat($('stock').value),
+    foto: $('preview').src
+  };
+
+  guardarProducto(db, producto, () => {
+    alert('Producto guardado');
+    resetForm();
+    buscarProductos();
+  });
+};
+
+function buscarProductos() {
+  const q = $('buscarInput')?.value.toLowerCase() || '';
+  obtenerTodos(db, productos => {
+    const resultados = productos.filter(p =>
+      p.nombre.toLowerCase().includes(q) || p.codigo.includes(q)
+    );
+    $('resultados').innerHTML = resultados.map(p => `
+      <div class="product-card">
+        <img src="${p.foto}" />
+        <strong>${p.nombre}</strong> (${p.codigo}) - Ref: ${p.referencia || '—'}<br>
+        ${p.categoria} - ${p.descripcion}<br>
+        Cant: ${p.cantidad} | $${p.precioCosto} → $${p.precioVenta}<br>
+        <button onclick="editarProducto(${p.id})">Editar</button>
+        <button onclick="borrarProducto(${p.id})">Borrar</button>
+      </div>
+    `).join('');
+  });
+}
+
+function editarProducto(id) {
+  obtenerPorId(db, id, p => {
+    $('codigo').value = p.codigo;
+    $('referencia').value = p.referencia || '';
+    $('nombre').value = p.nombre;
+    $('categoria').value = p.categoria;
+    $('descripcion').value = p.descripcion;
+    $('proveedor').value = p.proveedor;
+    $('cantidad').value = p.cantidad;
+    $('cajas').value = p.cajas;
+    $('precioOriginal').value = p.precioOriginal;
+    $('tasa').value = p.tasa;
+    $('precioCosto').value = p.precioCosto;
+    $('precioVenta').value = p.precioVenta;
+    $('stock').value = p.stock;
+    $('preview').src = p.foto;
+    $('productIndex').value = p.id;
+
+    calcularPreciosAutomáticamente();
+    calcularStock();
+
+    showScreen('add');
+  });
+}
+
+function borrarProducto(id) {
+  if (!confirm("¿Seguro de borrar?")) return;
+  borrarPorId(db, id, buscarProductos);
+}
+
 function calcularPreciosAutomáticamente() {
   const precioOriginal = parseFloat($('precioOriginal').value);
   const tasa = parseFloat($('tasa').value);
-  const cantidad = parseFloat($('cantidad').value);
 
-  if (!isNaN(precioOriginal) && !isNaN(tasa) && !isNaN(cantidad) && cantidad !== 0) {
-    const pcs = precioOriginal / cantidad;
-    const precioCosto = pcs * tasa * 2;
+  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
+    const precioCosto = precioOriginal * 2 * tasa;
     const precioVenta = precioCosto * 1.3;
-
     $('precioCosto').value = precioCosto.toFixed(2);
     $('precioVenta').value = precioVenta.toFixed(2);
   } else {
@@ -46,213 +115,42 @@ function calcularPreciosAutomáticamente() {
 }
 
 function calcularStock() {
-  const cajas = parseFloat($('cajas').value);
-  const cantidad = parseFloat($('cantidad').value);
-
-  if (!isNaN(cajas) && !isNaN(cantidad)) {
-    $('stock').value = cajas * cantidad;
+  const piezas = parseFloat($('cantidad').value);
+  const bultos = parseFloat($('cajas').value);
+  if (!isNaN(piezas) && !isNaN(bultos)) {
+    $('stock').value = piezas * bultos;
   } else {
     $('stock').value = '';
   }
 }
 
-// ==========================
-// CRUD DE CATEGORÍAS
-// ==========================
-function addCategoria() {
-  const input = $('nuevaCategoria');
-  const nueva = input.value.trim();
-
-  if (nueva && !categorias.includes(nueva)) {
-    categorias.push(nueva);
-    localStorage.setItem('categorias', JSON.stringify(categorias));
-    cargarCategorias();
-    $('categoria').value = nueva;
-    input.value = '';
-  } else {
-    alert('Categoría no válida o ya existe.');
-  }
-}
-
-function cargarCategorias() {
-  const select = $('categoria');
-  select.innerHTML = `
-    <option value="" disabled selected>Selecciona una categoría</option>
-    ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-  `;
-   // Mostrar lista con botones para eliminar
-  const lista = $('listaCategorias');
-  if (lista) {
-    lista.innerHTML = categorias.map((cat, i) => `
-      <div class="categoria-item">
-        <span>${cat}</span>
-        <button onclick="borrarCategoria(${i})">🗑️</button>
-      </div>
-    `).join('');
-  }
-}
-
-function eliminarCategoriaSeleccionada() {
-  const select = $('categoria');
-  const selected = select.value;
-
-  if (!selected) {
-    alert('Selecciona una categoría primero.');
-    return;
-  }
-
-  const confirmacion = confirm(`¿Eliminar la categoría "${selected}"?`);
-  if (!confirmacion) return;
-
-  const index = categorias.indexOf(selected);
-  if (index !== -1) {
-    categorias.splice(index, 1);
-    localStorage.setItem('categorias', JSON.stringify(categorias));
-    cargarCategorias();
-    alert(`Categoría "${selected}" eliminada.`);
-  }
-}
-
-
-
-// ==========================
-// MANEJO DE PRODUCTOS
-// ==========================
 function resetForm() {
   $('productForm').reset();
   $('preview').src = '';
   $('productIndex').value = '';
 }
 
-$('productForm').onsubmit = e => {
-  e.preventDefault();
-  const index = $('productIndex').value;
-  const producto = {
-    id: index ? productos[index].id : Date.now(),
-    codigo: $('codigo').value,
-    nombre: $('nombre').value,
-    categoria: $('categoria').value,
-    descripcion: $('descripcion').value,
-    cantidad: parseInt($('cantidad').value),
-    precioCosto: parseFloat($('precioCosto').value),
-    precioVenta: parseFloat($('precioVenta').value),
-    foto: $('preview').src
-  };
-  if (index) productos[index] = producto;
-  else productos.push(producto);
-
-  localStorage.setItem('productos', JSON.stringify(productos));
-  alert('Producto guardado');
-  resetForm();
-  buscarProductos(); // <- 🆕 Refresca productos luego de guardar
-};
-
-function buscarProductos() {
-  const q = $('buscarInput').value.toLowerCase();
-  const res = productos.filter(p =>
-    p.nombre.toLowerCase().includes(q) || p.codigo.includes(q)
-  );
-  $('resultados').innerHTML = res.map((p, i) => `
-    <div class="product-card">
-      <img src="${p.foto}" />
-      <strong>${p.nombre}</strong> (${p.codigo})<br>
-      ${p.categoria} - ${p.descripcion}<br>
-      Cant: ${p.cantidad} | $${p.precioCosto} → $${p.precioVenta}<br>
-      <button onclick="editarProducto(${i})">Editar</button>
-      <button onclick="borrarProducto(${i})">Borrar</button>
-    </div>
-  `).join('');
-}
-
-function editarProducto(i) {
-  const p = productos[i];
-  $('codigo').value = p.codigo;
-  $('nombre').value = p.nombre;
-  $('categoria').value = p.categoria;
-  $('descripcion').value = p.descripcion;
-  $('cantidad').value = p.cantidad;
-  $('precioCosto').value = p.precioCosto;
-  $('precioVenta').value = p.precioVenta;
-  $('preview').src = p.foto;
-  $('productIndex').value = i;
-
-  calcularPreciosAutomáticamente(); // 🆕 Corrige fórmulas
-  calcularStock();
-
-  showScreen('add');
-}
-
-function borrarProducto(i) {
-  if (confirm("¿Seguro de borrar?")) {
-    productos.splice(i, 1);
-    localStorage.setItem('productos', JSON.stringify(productos));
-    buscarProductos();
-  }
-}
-
-// ==========================
-// MANEJO DE VISTAS
-// ==========================
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-  $(id + 'Screen').classList.remove('hidden');
-}
+  $(`${id}Screen`).classList.remove('hidden');
 
-// ==========================
-// CÁMARA Y ESCÁNER QR
-// ==========================
-function scanCode() {
-  const html5QrCode = new Html5Qrcode("reader");
-  const config = {
-    fps: 10,
-    qrbox: 250,
-    facingMode: "user"
-  };
-
-  $('reader').style.display = "block";
-
-  html5QrCode.start(
-    { facingMode: "user" },
-    config,
-    (decodedText) => {
-      $('result').innerText = `Código escaneado: ${decodedText}`;
-      html5QrCode.stop().then(() => {
-        $('reader').style.display = "none";
-      });
-    },
-    (errorMessage) => {
-      console.warn(`Error escaneando: ${errorMessage}`);
-    }
-  ).catch(err => {
-    console.error("Fallo al iniciar el escaneo", err);
-  });
-}
-
-function capturePhoto() {
-  const modal = $('cameraModal');
-  const video = $('video');
-  modal.classList.remove('hidden');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-    .then(stream => {
-      currentStream = stream;
-      video.srcObject = stream;
+  if (id === 'add') {
+    $('precioOriginal')?.addEventListener('input', calcularPreciosAutomáticamente);
+    $('tasa')?.addEventListener('input', calcularPreciosAutomáticamente);
+    $('cantidad')?.addEventListener('input', () => {
+      calcularPreciosAutomáticamente();
+      calcularStock();
     });
-}
-
-function takePhoto() {
-  const video = $('video');
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  $('preview').src = canvas.toDataURL('image/jpeg');
-  closeCamera();
-}
-
-function closeCamera() {
-  $('cameraModal').classList.add('hidden');
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop());
-    currentStream = null;
+    $('cajas')?.addEventListener('input', calcularStock);
   }
+}
+
+function cargarCategorias() {
+  const categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
+  const select = $('categoria');
+  if (!select) return;
+  select.innerHTML = `
+    <option value="" disabled selected>Selecciona una categoría</option>
+    ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+  `;
 }
