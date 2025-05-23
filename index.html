@@ -35,22 +35,38 @@
   </label>
 </div>
 
-      <label>Nombre: <input type="text" id="nombre" required /></label>
-      
-     <label for="categoria">Categoría:</label>
-<div style="display: flex; gap: 5px; align-items: center;">
-  <select id="categoria"></select>
-  <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
+
+<div class="fila-doble">
+  <label>Nombre:
+    <input type="text" id="nombre" required />
+  </label>
+  <label>Proveedor:
+    <input type="text" id="proveedor" />
+  </label>
 </div>
 
-<input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
-<button type="button" onclick="addCategoria()">Añadir Categoría</button>
+<label for="categoria">Categoría:</label>
+      
+     <div class="cat">
+  <div class="cat1">
+    
+    <div class="categoria-contenedor">
+      <select id="categoria"></select>
+      <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
+    </div>
+  </div>
+
+  <div class="cat2">
+    <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
+    <button type="button" onclick="addCategoria()">Añadir Categoría</button>
+  </div>
+</div>
 
 
       <label>Descripción:
         <textarea id="descripcion"></textarea>
       </label>
-      <label>Proveedor: <input type="text" id="proveedor" /></label>
+      
       <div class="fila-doble">
       <label>Piezas: <input type="number" id="cantidad" required /></label>
       <label>N° Bultos : <input type="number" id="cajas" /></label>
