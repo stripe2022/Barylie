@@ -10,7 +10,7 @@ body {
 header {
   background: #111;
   color: #fff;
-  padding: 4rem;
+  padding: 10px;
   text-align: center;
 }
 
@@ -24,7 +24,7 @@ nav button {
 }
 
 .screen {
-  padding: 15px;
+  padding: 2rem;
 }
 
 .hidden {
@@ -262,6 +262,19 @@ button:hover {
     border-radius: 12px;
     border: 1px solid #ddd;
   }
+  .info{
+    display: flex;
+    flex-direction: column;
+  }
+  .info p {
+  color: #555;
+  margin: 4px 0;
+  font-size: 0.95rem;
+}
+  .info h3{
+    padding: 0;
+  }
+
 
   .info-producto {
     flex: 1;
@@ -316,6 +329,134 @@ button:hover {
 #resultados {
   height: 350px;
 }
+/* 🎯 Estilos para pantallas pequeñas (móviles) */
+/*@media (max-width: 600px) {
+  body {
+    font-size: 16px;
+    padding: 1rem;
+  }
+
+  .fila-doble {
+    flex-direction: column;
+  }
+
+  .acciones {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .tarjeta-producto {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .tarjeta-producto img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-producto,
+  .info {
+    padding-left: 0;
+    align-items: center;
+  }
+
+  .fotos-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  nav button {
+    font-size: 1em;
+    padding: 8px;
+    width: 100%;
+  }
+
+  .custom-file {
+    width: 90%;
+  }
+
+  .boton-foto {
+    width: 90%;
+  }
+
+  .screen {
+    padding: 1rem;
+  }
+
+  .cantidadCentro {
+    flex-direction: column;
+  }
+
+  #resultados {
+    height: auto;
+  }
+}
+
+/* 📱 Tablets (entre 601px y 900px) 
+@media (max-width: 900px) {
+  .tarjeta-producto {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .acciones {
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .info-producto,
+  .info {
+    padding-left: 0;
+    align-items: center;
+  }
+
+  .fotos-row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}*/
+@media (max-width: 600px) {
+  /* 🔁 Asegura que los campos sigan en fila */
+  .fila-doble {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .fila-doble label {
+    flex: 1 1 48%;
+  }
+
+  .acciones {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tarjeta-producto {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .info, .info-producto {
+    padding-left: 0;
+    align-items: center;
+  }
+
+  .fotos-row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  nav button {
+    width: 100%;
+  }
+}
+
 
 
 
