@@ -59,13 +59,24 @@
         </div>
       </div>
 
-      <label>Foto 1:
-        <input type="file" accept="image/*" onchange="previewImage(this, 1)" />
-        <img id="preview1" style="max-height: 100px; display: block; margin-top: 5px;" />
+      <div class="fotos-row">
+  <div>
+    <label>Foto 1:
+      <label class="custom-file"><span class="custom-file-label">Producto</span>
+        <input type="file" accept="image/*" onchange="previewImage(this, 1)" class="boton-foto" />
       </label>
-
-      <label>Foto 2:
-        <input type="file" accept="image/*" onchange="previewImage(this, 2)" />
+      <img id="preview1" style="max-height: 100px; display: block; margin-top: 5px;" />
+    </label>
+  </div>
+  <div>
+    <label>Foto 2:
+      <label class="custom-file"><span class="custom-file-label">Embalaje</span>
+        <input type="file" accept="image/*" onchange="previewImage(this, 2)" class="boton-foto" />
+      </label>
+      <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
+    </label>
+  </div>
+</div>
         <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
       </label>
 

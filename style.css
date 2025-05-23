@@ -180,5 +180,70 @@ button:hover {
   opacity: 1;
   filter: brightness(1.1);
 }
+.boton-foto {
+  background-color: #1976d2;
+  color: white;
+  padding: 8px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 60%;
+}
+.custom-file {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  background-color: #2196f3;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  cursor: pointer;
+  width: 70%;
+  margin: auto;
+  margin-top: 20px;
+}
+
+.custom-file input[type="file"] {
+ 
+  opacity: 0;
+  cursor: pointer;
+  height: 100%;
+ 
+}
+.custom-file-label {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  font-size: 21px; /* Tamaño más pequeño del texto */
+  margin-top: 25px;
+}
+
+.fotos-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.fotos-row div {
+  flex: 1;
+  min-width: 150px;
+}
+.fotos-row > div > label {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  font-size: 21px;
+  color: #333;
+  margin-bottom: 6px;
+      align-content: center;
+    align-items: center;
+}
+
+
+
+
+
 
 
