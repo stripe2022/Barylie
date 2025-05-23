@@ -1,156 +1,157 @@
-// app.js conectado a db.js para IndexedDB modular
-import {
-  abrirDB,
-  guardarProducto,
-  obtenerTodos,
-  obtenerPorId,
-  borrarPorId
-} from './db.js';
+// app.js - Lógica principal para Inventario Almacén PWA con IndexedDB y compresión de imágenes
 
+// ===========================
+// VARIABLES GLOBALES
+// ===========================
 let db;
+let categorias = [];
+
 const $ = id => document.getElementById(id);
 
+// ===========================
 // INICIALIZACIÓN
-
+// ===========================
 document.addEventListener('DOMContentLoaded', () => {
-  abrirDB(instance => {
-    db = instance;
-    cargarCategorias();
-    buscarProductos();
-  });
+  abrirDB();
+  $('productForm').addEventListener('submit', guardarProducto);
 });
 
-// FORMULARIO
-$('productForm').onsubmit = e => {
-  e.preventDefault();
-  const id = $('productIndex').value ? parseInt($('productIndex').value) : Date.now();
+// ===========================
+// INDEXEDDB
+// ===========================
+function abrirDB() {
+  const request = indexedDB.open('inventarioDB', 1);
 
-  const producto = {
-    id,
-    codigo: $('codigo').value,
-    referencia: $('referencia').value,
-    nombre: $('nombre').value,
-    categoria: $('categoria').value,
-    descripcion: $('descripcion').value,
-    proveedor: $('proveedor').value,
-    cantidad: parseInt($('cantidad').value),
-    cajas: parseInt($('cajas').value),
-    precioOriginal: parseFloat($('precioOriginal').value),
-    tasa: parseFloat($('tasa').value),
-    precioCosto: parseFloat($('precioCosto').value),
-    precioVenta: parseFloat($('precioVenta').value),
-    stock: parseFloat($('stock').value),
-    foto: $('preview').src
+  request.onupgradeneeded = function (e) {
+    const db = e.target.result;
+    const store = db.createObjectStore('productos', { keyPath: 'codigo' });
+    store.createIndex('nombre', 'nombre', { unique: false });
+    db.createObjectStore('categorias', { keyPath: 'nombre' });
   };
 
-  guardarProducto(db, producto, () => {
-    alert('Producto guardado');
-    resetForm();
-    buscarProductos();
+  request.onsuccess = function (e) {
+    db = e.target.result;
+    cargarCategorias();
+  };
+
+  request.onerror = function () {
+    console.error('Error al abrir la base de datos');
+  };
+}
+
+function guardarProducto(e) {
+  e.preventDefault();
+
+  capturarFoto().then(fotoInt64 => {
+    const producto = {
+      codigo: $('codigo').value.trim(),
+      referencia: $('referencia').value.trim(),
+      nombre: $('nombre').value.trim(),
+      proveedor: $('proveedor').value.trim(),
+      categoria: $('categoria').value,
+      descripcion: $('descripcion').value.trim(),
+      cantidad: parseInt($('cantidad').value) || 0,
+      cajas: parseInt($('cajas').value) || 0,
+      precioOriginal: parseFloat($('precioOriginal').value) || 0,
+      tasa: parseFloat($('tasa').value) || 1,
+      precioCosto: parseFloat($('precioCosto').value) || 0,
+      precioVenta: parseFloat($('precioVenta').value) || 0,
+      stock: parseInt($('stock').value) || 0,
+      foto: fotoInt64
+    };
+
+    const tx = db.transaction('productos', 'readwrite');
+    tx.objectStore('productos').put(producto);
+    tx.oncomplete = () => {
+      alert('Producto guardado con éxito');
+      resetForm();
+    };
+    tx.onerror = () => alert('Error al guardar el producto');
   });
-};
-
-function buscarProductos() {
-  const q = $('buscarInput')?.value.toLowerCase() || '';
-  obtenerTodos(db, productos => {
-    const resultados = productos.filter(p =>
-      p.nombre.toLowerCase().includes(q) || p.codigo.includes(q)
-    );
-    $('resultados').innerHTML = resultados.map(p => `
-      <div class="product-card">
-        <img src="${p.foto}" />
-        <strong>${p.nombre}</strong> (${p.codigo}) - Ref: ${p.referencia || '—'}<br>
-        ${p.categoria} - ${p.descripcion}<br>
-        Cant: ${p.cantidad} | $${p.precioCosto} → $${p.precioVenta}<br>
-        <button onclick="editarProducto(${p.id})">Editar</button>
-        <button onclick="borrarProducto(${p.id})">Borrar</button>
-      </div>
-    `).join('');
-  });
-}
-
-function editarProducto(id) {
-  obtenerPorId(db, id, p => {
-    $('codigo').value = p.codigo;
-    $('referencia').value = p.referencia || '';
-    $('nombre').value = p.nombre;
-    $('categoria').value = p.categoria;
-    $('descripcion').value = p.descripcion;
-    $('proveedor').value = p.proveedor;
-    $('cantidad').value = p.cantidad;
-    $('cajas').value = p.cajas;
-    $('precioOriginal').value = p.precioOriginal;
-    $('tasa').value = p.tasa;
-    $('precioCosto').value = p.precioCosto;
-    $('precioVenta').value = p.precioVenta;
-    $('stock').value = p.stock;
-    $('preview').src = p.foto;
-    $('productIndex').value = p.id;
-
-    calcularPreciosAutomáticamente();
-    calcularStock();
-
-    showScreen('add');
-  });
-}
-
-function borrarProducto(id) {
-  if (!confirm("¿Seguro de borrar?")) return;
-  borrarPorId(db, id, buscarProductos);
-}
-
-function calcularPreciosAutomáticamente() {
-  const precioOriginal = parseFloat($('precioOriginal').value);
-  const tasa = parseFloat($('tasa').value);
-
-  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
-    const precioCosto = precioOriginal * 2 * tasa;
-    const precioVenta = precioCosto * 1.3;
-    $('precioCosto').value = precioCosto.toFixed(2);
-    $('precioVenta').value = precioVenta.toFixed(2);
-  } else {
-    $('precioCosto').value = '';
-    $('precioVenta').value = '';
-  }
-}
-
-function calcularStock() {
-  const piezas = parseFloat($('cantidad').value);
-  const bultos = parseFloat($('cajas').value);
-  if (!isNaN(piezas) && !isNaN(bultos)) {
-    $('stock').value = piezas * bultos;
-  } else {
-    $('stock').value = '';
-  }
 }
 
 function resetForm() {
   $('productForm').reset();
   $('preview').src = '';
-  $('productIndex').value = '';
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-  $(`${id}Screen`).classList.remove('hidden');
-
-  if (id === 'add') {
-    $('precioOriginal')?.addEventListener('input', calcularPreciosAutomáticamente);
-    $('tasa')?.addEventListener('input', calcularPreciosAutomáticamente);
-    $('cantidad')?.addEventListener('input', () => {
-      calcularPreciosAutomáticamente();
-      calcularStock();
-    });
-    $('cajas')?.addEventListener('input', calcularStock);
-  }
 }
 
 function cargarCategorias() {
-  const categorias = JSON.parse(localStorage.getItem('categorias') || '[]');
-  const select = $('categoria');
-  if (!select) return;
-  select.innerHTML = `
-    <option value="" disabled selected>Selecciona una categoría</option>
-    ${categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-  `;
+  const tx = db.transaction('categorias', 'readonly');
+  const store = tx.objectStore('categorias');
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    categorias = request.result.map(cat => cat.nombre);
+    const select = $('categoria');
+    select.innerHTML = '';
+
+    if (categorias.length === 0) {
+      const option = document.createElement('option');
+      option.disabled = true;
+      option.textContent = 'No hay categorías';
+      select.appendChild(option);
+    } else {
+      categorias.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+  };
+}
+
+function addCategoria() {
+  const nuevaCat = $('nuevaCategoria').value.trim();
+  const existe = categorias.map(c => c.toLowerCase()).includes(nuevaCat.toLowerCase());
+  if (nuevaCat && !existe) {
+    const tx = db.transaction('categorias', 'readwrite');
+    tx.objectStore('categorias').put({ nombre: nuevaCat });
+    tx.oncomplete = () => {
+      cargarCategorias();
+      $('nuevaCategoria').value = '';
+    };
+  } else if (existe) {
+    alert('Esa categoría ya existe.');
+  }
+}
+
+function eliminarCategoriaSeleccionada() {
+  const seleccionada = $('categoria').value;
+  if (!seleccionada) return;
+  if (confirm(`¿Eliminar la categoría "${seleccionada}"?`)) {
+    const tx = db.transaction('categorias', 'readwrite');
+    tx.objectStore('categorias').delete(seleccionada);
+    tx.oncomplete = cargarCategorias;
+  }
+}
+
+function showScreen(pantallaId) {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $(pantallaId + 'Screen').classList.remove('hidden');
+}
+
+// ===========================
+// FOTO A BASE64 INT64 (COMPRESIÓN)
+// ===========================
+function capturarFoto() {
+  return new Promise(resolve => {
+    const img = $('preview');
+    if (!img || !img.src) return resolve(null);
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 300;
+    canvas.height = 300;
+    ctx.drawImage(img, 0, 0, 300, 300);
+    canvas.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const arrayBuffer = reader.result;
+        const int64Array = Array.from(new Uint8Array(arrayBuffer));
+        resolve(int64Array);
+      };
+      reader.readAsArrayBuffer(blob);
+    }, 'image/jpeg', 0.7);
+  });
 }
