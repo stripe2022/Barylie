@@ -169,7 +169,10 @@ function calcularPrecioVenta() {
     $('precioVenta').value = venta.toFixed(2);
   }
 }
-
+function volver() {
+  document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
+  document.getElementById("addScreen").classList.remove("hidden");
+}
 
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)

@@ -85,21 +85,20 @@
       </label>
 
       <div class="fila-doble">
-        <label>Piezas: <input type="number" id="cantidad" required /></label>
-        <label>N° Bultos : <input type="number" id="cajas" /></label>
-      </div>
-      <div class="fila-doble">
-        <label>Precio Original ($): <input type="number" id="precioOriginal" required /></label>
-        <label>Tasa de Cambio (MN): <input type="number" id="tasa" /></label>
-      </div>
-      <div class="fila-doble">
-        <label>Precio Costo (MN): <input type="number" id="precioCosto" required /></label>
-        <label>Precio Venta (MN): <input type="number" id="precioVenta" required /></label>
-      </div>
-      <div class="cantidadCentro">
-        <label>Existencia en Almacen: <input type="number" id="stock" required /></label>
-      </div>
-
+  <label>Piezas: <input type="number" step="any" id="cantidad" /></label>
+  <label>N° Bultos : <input type="number" step="any" id="cajas" /></label>
+</div>
+<div class="fila-doble">
+  <label>Precio Original ($): <input type="number" step="any" id="precioOriginal" required /></label>
+  <label>Tasa de Cambio (MN): <input type="number" step="any" id="tasa" /></label>
+</div>
+<div class="fila-doble">
+  <label>Precio Costo (MN): <input type="number" step="any" id="precioCosto" required /></label>
+  <label>Precio Venta (MN): <input type="number" step="any" id="precioVenta" required /></label>
+</div>
+<div class="cantidadCentro">
+  <label>Existencia en Almacen: <input type="number" step="any" id="stock" required /></label>
+</div>
       <div class="actions">
         <button type="submit">Guardar</button>
         <button type="button"  class="cancelar" onclick="resetForm()">Cancelar</button>
@@ -107,13 +106,15 @@
     </form>
   </section>
 
-  <!-- Pantalla Buscar Producto -->
-  <section id="searchScreen" class="screen hidden">
-    <h2>Buscar Producto</h2>
-    <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
-    <button onclick="scanCode(true)">Escanear</button>
-    <div id="resultados"></div>
-  </section>
+ <!-- Pantalla Buscar Producto -->
+<section id="searchScreen" class="screen hidden">
+  <h2>Buscar Producto</h2>
+  <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
+  <button onclick="scanCode(true)">Escanear</button>
+  <button type="button" class="cancelar" onclick="volver()">Cancelar</button>
+  <div id="resultados"></div>
+</section>
+
 
   <!-- Pantalla Movimientos -->
   <section id="stockScreen" class="screen hidden">
