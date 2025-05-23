@@ -23,70 +23,72 @@
     <h2>Añadir Producto</h2>
     <form id="productForm">
       <input type="hidden" id="productIndex" />
-     <div class="fila-doble">
-  <label>Código:
-    <input type="text" id="codigo" required />
-    <button type="button" onclick="scanCode()">Escanear</button>
-    <div id="reader" style="display:none;"></div>
-    <p id="result"></p>
-  </label>
-  <label>Referencia:
-    <input type="text" id="referencia" />
-  </label>
-</div>
+      <div class="fila-doble">
+        <label>Código:
+          <input type="text" id="codigo" required />
+          <button type="button" onclick="scanCode()">Escanear</button>
+          <div id="reader" style="display:none;"></div>
+          <p id="result"></p>
+        </label>
+        <label>Referencia:
+          <input type="text" id="referencia" />
+        </label>
+      </div>
 
+      <div class="fila-doble">
+        <label>Nombre:
+          <input type="text" id="nombre" required />
+        </label>
+        <label>Proveedor:
+          <input type="text" id="proveedor" />
+        </label>
+      </div>
 
-<div class="fila-doble">
-  <label>Nombre:
-    <input type="text" id="nombre" required />
-  </label>
-  <label>Proveedor:
-    <input type="text" id="proveedor" />
-  </label>
-</div>
+      <label for="categoria">Categoría:</label>
+      <div class="cat">
+        <div class="cat1">
+          <div class="categoria-contenedor">
+            <select id="categoria"></select>
+            <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
+          </div>
+        </div>
 
-<label for="categoria">Categoría:</label>
-      
-     <div class="cat">
-  <div class="cat1">
-    
-    <div class="categoria-contenedor">
-      <select id="categoria"></select>
-      <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
-    </div>
-  </div>
+        <div class="cat2">
+          <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
+          <button type="button" onclick="addCategoria()">Añadir Categoría</button>
+        </div>
+      </div>
 
-  <div class="cat2">
-    <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
-    <button type="button" onclick="addCategoria()">Añadir Categoría</button>
-  </div>
-</div>
+      <label>Foto 1:
+        <input type="file" accept="image/*" onchange="previewImage(this, 1)" />
+        <img id="preview1" style="max-height: 100px; display: block; margin-top: 5px;" />
+      </label>
 
+      <label>Foto 2:
+        <input type="file" accept="image/*" onchange="previewImage(this, 2)" />
+        <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
+      </label>
 
       <label>Descripción:
         <textarea id="descripcion"></textarea>
       </label>
-      
+
       <div class="fila-doble">
-      <label>Piezas: <input type="number" id="cantidad" required /></label>
-      <label>N° Bultos : <input type="number" id="cajas" /></label>
+        <label>Piezas: <input type="number" id="cantidad" required /></label>
+        <label>N° Bultos : <input type="number" id="cajas" /></label>
       </div>
       <div class="fila-doble">
-      <label>Precio Original ($): <input type="number" id="precioOriginal" required /></label>
-      <label>Tasa de Cambio (MN): <input type="number" id="tasa" /></label>
+        <label>Precio Original ($): <input type="number" id="precioOriginal" required /></label>
+        <label>Tasa de Cambio (MN): <input type="number" id="tasa" /></label>
       </div>
       <div class="fila-doble">
-      <label>Precio Costo (MN): <input type="number" id="precioCosto" required /></label>
-      <label>Precio Venta (MN): <input type="number" id="precioVenta" required /></label>
+        <label>Precio Costo (MN): <input type="number" id="precioCosto" required /></label>
+        <label>Precio Venta (MN): <input type="number" id="precioVenta" required /></label>
       </div>
       <div class="cantidadCentro">
         <label>Existencia en Almacen: <input type="number" id="stock" required /></label>
       </div>
-      <label>Foto:
-        <button type="button" onclick="capturePhoto()">Añadir Foto</button>
-        <img id="preview" />
-      </label>
-      
+
       <div class="actions">
         <button type="submit">Guardar</button>
         <button type="button"  class="cancelar" onclick="resetForm()">Cancelar</button>
@@ -110,15 +112,17 @@
     <div id="stockResultado"></div>
   </section>
 
-<!-- Cámara modal 
-<div id="cameraModal" class="modal hidden">
-  <video id="video" autoplay playsinline></video>
-  <div class="modal-buttons">
-    <button onclick="takePhoto()">Capturar</button>
-    <button onclick="closeCamera()">Cerrar</button>
-  </div>
-</div> -->
-
   <script src="app.js" defer></script>
+<script>
+  function previewImage(input, index) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById(`preview${index}`).src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
 </body>
-  </html>
+</html>

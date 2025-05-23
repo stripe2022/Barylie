@@ -14,6 +14,13 @@ const $ = id => document.getElementById(id);
 document.addEventListener('DOMContentLoaded', () => {
   abrirDB();
   $('productForm').addEventListener('submit', guardarProducto);
+
+  // Listeners para cálculo automático de precioCosto, precioVenta y stock
+  $('precioOriginal').addEventListener('input', calcularPrecioCosto);
+  $('tasa').addEventListener('input', calcularPrecioCosto);
+  $('precioCosto').addEventListener('input', calcularPrecioVenta);
+  $('cantidad').addEventListener('input', calcularStock);
+  $('cajas').addEventListener('input', calcularStock);
 });
 
 // ===========================
@@ -110,9 +117,12 @@ function addCategoria() {
     tx.oncomplete = () => {
       cargarCategorias();
       $('nuevaCategoria').value = '';
+      $('nuevaCategoria').focus();
     };
   } else if (existe) {
     alert('Esa categoría ya existe.');
+    $('nuevaCategoria').value = '';
+    $('nuevaCategoria').focus();
   }
 }
 
@@ -130,6 +140,36 @@ function showScreen(pantallaId) {
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
   $(pantallaId + 'Screen').classList.remove('hidden');
 }
+
+// ===========================
+// CÁLCULOS AUTOMÁTICOS
+// ===========================
+function calcularStock() {
+  const cantidad = parseInt($('cantidad').value);
+  const cajas = parseInt($('cajas').value);
+  if (!isNaN(cantidad) && !isNaN(cajas)) {
+    const stock = cantidad * cajas;
+    $('stock').value = stock;
+  }
+}
+function calcularPrecioCosto() {
+  const precioOriginal = parseFloat($('precioOriginal').value);
+  const tasa = parseFloat($('tasa').value);
+  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
+    const costo = precioOriginal * tasa * 2;
+    $('precioCosto').value = costo.toFixed(2);
+    calcularPrecioVenta();
+  }
+}
+
+function calcularPrecioVenta() {
+  const precioCosto = parseFloat($('precioCosto').value);
+  if (!isNaN(precioCosto)) {
+    const venta = precioCosto * 1.3;
+    $('precioVenta').value = venta.toFixed(2);
+  }
+}
+
 
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
