@@ -138,4 +138,47 @@ img#preview {
   flex-direction: column;
   
 }
+/* Botón Aceptar: Verde mate */
+button[type="submit"],
+.boton-aceptar {
+  background-color: #4CAF50; /* Verde suave */
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Botón Cancelar: Rojo claro mate */
+button.cancelar,
+.boton-cancelar {
+  background-color: #f44336; /* Rojo suave */
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+/* Botón Borrar (🗑️): Rojo fuerte */
+button[title*="Eliminar"],
+.boton-borrar {
+  background-color: #e53935; /* rojo fuerte original */
+  background-image: linear-gradient(to bottom, #f57f17, #d32f2f); /* efecto rojo-amarillo mate */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 1;
+  filter: brightness(1.1);
+}
+
 
