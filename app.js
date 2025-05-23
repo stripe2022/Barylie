@@ -49,7 +49,10 @@ function abrirDB() {
 function guardarProducto(e) {
   e.preventDefault();
 
-  capturarFoto().then(fotoInt64 => {
+  Promise.all([
+  capturarFoto(1),
+  capturarFoto(2)
+]).then(([fotoProducto, fotoEmbalaje]) => {
     const producto = {
       codigo: $('codigo').value.trim(),
       referencia: $('referencia').value.trim(),
@@ -64,8 +67,10 @@ function guardarProducto(e) {
       precioCosto: parseFloat($('precioCosto').value) || 0,
       precioVenta: parseFloat($('precioVenta').value) || 0,
       stock: parseInt($('stock').value) || 0,
-      foto: fotoInt64
+      fotoProducto,
+      fotoEmbalaje
     };
+    
 
     const tx = db.transaction('productos', 'readwrite');
     tx.objectStore('productos').put(producto);
@@ -78,9 +83,20 @@ function guardarProducto(e) {
 }
 
 function resetForm() {
-  $('productForm').reset();
-  $('preview').src = '';
+  $('productForm')?.reset();
+
+  // Limpiar cualquier imagen con id que empiece por "preview"
+  document.querySelectorAll('img[id^="preview"]').forEach(img => {
+    img.removeAttribute('src');
+  });
+
+  // Limpiar también los inputs de tipo file si tienen ids conocidos
+  document.querySelectorAll('input[type="file"]').forEach(input => {
+    input.value = '';
+  });
 }
+
+
 
 function cargarCategorias() {
   const tx = db.transaction('categorias', 'readonly');
@@ -174,6 +190,55 @@ function volver() {
   document.getElementById("addScreen").classList.remove("hidden");
 }
 // BÚSQUEDA EN VIVO POR CÓDIGO O NOMBRE
+/*function buscarProductos() {
+  const consulta = $('buscarInput').value.trim().toLowerCase();
+  const contenedor = $('resultados');
+  contenedor.innerHTML = '';
+
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const resultados = request.result.filter(prod => {
+      return (
+        prod.codigo.toLowerCase().includes(consulta) ||
+        prod.nombre.toLowerCase().includes(consulta)
+      );
+    });
+
+    if (resultados.length === 0) {
+      contenedor.innerHTML = '<p>No se encontraron productos.</p>';
+      return;
+    }
+
+    
+    resultados.forEach(prod => {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta-producto';
+  tarjeta.innerHTML = `
+    <h3>${prod.nombre}</h3>
+    <p><strong>Código:</strong> ${prod.codigo}</p>
+    <p><strong>Referencia:</strong> ${prod.referencia}</p>
+  `;
+
+ if (prod.fotoProducto) {
+  const blob1 = new Blob([new Uint8Array(prod.fotoProducto)], { type: 'image/jpeg' });
+  const url1 = URL.createObjectURL(blob1);
+  const img1 = document.createElement('img');
+  img1.src = url1;
+  img1.style.maxWidth = '100px';
+  tarjeta.appendChild(img1);
+}
+
+
+
+
+  contenedor.appendChild(tarjeta);
+});
+  };
+}*/
+
 function buscarProductos() {
   const consulta = $('buscarInput').value.trim().toLowerCase();
   const contenedor = $('resultados');
@@ -196,19 +261,63 @@ function buscarProductos() {
       return;
     }
 
-    resultados.forEach(prod => {
-      const tarjeta = document.createElement('div');
-      tarjeta.className = 'tarjeta-producto';
-      tarjeta.innerHTML = `
-        <h3>${prod.nombre}</h3>
-        <p><strong>Código:</strong> ${prod.codigo}</p>
-        <p><strong>Referencia:</strong> ${prod.referencia}</p>
-        ${prod.fotos?.[0] ? `<img src="data:image/jpeg;base64,${btoa(String.fromCharCode(...prod.fotos[0]))}" style="max-width: 100px;">` : ''}
-      `;
-      contenedor.appendChild(tarjeta);
-    });
+    // ✅ Usa la nueva función de renderizado
+    renderizarResultados(resultados);
+  };
+
+  request.onerror = () => {
+    contenedor.innerHTML = '<p>Error al buscar productos.</p>';
   };
 }
+
+function renderizarResultados(resultados) {
+  const contenedor = document.getElementById('resultados');
+  contenedor.innerHTML = '';
+
+  resultados.forEach(prod => {
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'tarjeta-producto';
+
+    const imgContainer = document.createElement('div');
+    if (prod.fotoProducto) {
+      const blob = new Blob([new Uint8Array(prod.fotoProducto)], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Foto del producto';
+      imgContainer.appendChild(img);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = `
+      <h3>${prod.nombre}</h3>
+      <p>🏷️ <strong>Código:</strong> ${prod.codigo}</p>
+      <p>📦 <strong>Stock:</strong> ${prod.stock || 0}</p>
+      <p>💲 <strong>Precio:</strong> ${prod.precioVenta || 0} MN</p>
+    `;
+
+    const acciones = document.createElement('div');
+    acciones.className = 'acciones';
+
+    const btnEditar = document.createElement('button');
+    btnEditar.textContent = '✏️ Editar';
+    btnEditar.onclick = () => editarProducto(prod.codigo);
+    acciones.appendChild(btnEditar);
+
+    const btnEliminar = document.createElement('button');
+    btnEliminar.textContent = '🗑️ Eliminar';
+    btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
+    acciones.appendChild(btnEliminar);
+
+    tarjeta.appendChild(imgContainer);
+    tarjeta.appendChild(info);
+    tarjeta.appendChild(acciones);
+
+    contenedor.appendChild(tarjeta);
+  });
+}
+
 function volver() {
   document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
   document.getElementById("addScreen").classList.remove("hidden");
@@ -218,9 +327,9 @@ function volver() {
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
 // ===========================
-function capturarFoto() {
+function capturarFoto(index) {
   return new Promise(resolve => {
-    const img = $('preview');
+    const img = document.getElementById(`preview${index}`);
     if (!img || !img.src) return resolve(null);
 
     const canvas = document.createElement('canvas');
@@ -239,3 +348,4 @@ function capturarFoto() {
     }, 'image/jpeg', 0.7);
   });
 }
+

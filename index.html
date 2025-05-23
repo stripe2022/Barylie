@@ -112,7 +112,10 @@
   <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
   <button onclick="scanCode(true)">Escanear</button>
   <button type="button" class="cancelar" onclick="volver()">Cancelar</button>
-  <div id="resultados"></div>
+  <div id="resultados">
+    
+
+  </div>
 </section>
 
 
@@ -134,6 +137,17 @@
       document.getElementById(`preview${index}`).src = e.target.result;
     };
     reader.readAsDataURL(file);
+  }
+  function editarProducto(codigo) {
+    alert("Editar producto con código: " + codigo);
+    // Aquí puedes cargar el producto en el formulario de edición
+  }
+
+  function confirmarEliminar(codigo) {
+    if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
+      // Lógica para eliminarlo de IndexedDB o tu sistema
+      alert("Producto eliminado: " + codigo);
+    }
   }
 </script>
 </body>
