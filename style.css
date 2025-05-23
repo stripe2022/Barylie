@@ -118,11 +118,18 @@ img#preview {
   gap: 10px;
 }
 
-/*.categoria-contenedor {
+.categoria-contenedor {
+  flex: 1;
   display: flex;
+  gap: 10px;
+  flex-direction: column;
   
-}*/
+}
 
+.categoria-contenedor select {
+  width: 100%;
+ }
+   
 .cat1,
 .cat2 {
   flex: 1;
