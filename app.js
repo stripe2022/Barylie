@@ -173,6 +173,47 @@ function volver() {
   document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
   document.getElementById("addScreen").classList.remove("hidden");
 }
+// BÚSQUEDA EN VIVO POR CÓDIGO O NOMBRE
+function buscarProductos() {
+  const consulta = $('buscarInput').value.trim().toLowerCase();
+  const contenedor = $('resultados');
+  contenedor.innerHTML = '';
+
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const resultados = request.result.filter(prod => {
+      return (
+        prod.codigo.toLowerCase().includes(consulta) ||
+        prod.nombre.toLowerCase().includes(consulta)
+      );
+    });
+
+    if (resultados.length === 0) {
+      contenedor.innerHTML = '<p>No se encontraron productos.</p>';
+      return;
+    }
+
+    resultados.forEach(prod => {
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'tarjeta-producto';
+      tarjeta.innerHTML = `
+        <h3>${prod.nombre}</h3>
+        <p><strong>Código:</strong> ${prod.codigo}</p>
+        <p><strong>Referencia:</strong> ${prod.referencia}</p>
+        ${prod.fotos?.[0] ? `<img src="data:image/jpeg;base64,${btoa(String.fromCharCode(...prod.fotos[0]))}" style="max-width: 100px;">` : ''}
+      `;
+      contenedor.appendChild(tarjeta);
+    });
+  };
+}
+function volver() {
+  document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
+  document.getElementById("addScreen").classList.remove("hidden");
+  $('buscarInput').value = '';
+  $('resultados').innerHTML = '';  }
 
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
