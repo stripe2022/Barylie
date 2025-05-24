@@ -1,12 +1,12 @@
 const CACHE_NAME = 'barylie-cache-v1';
 const ASSETS = [
-  './',
-  'index.html',
-  'style.css',
-  'app.js',
-  'manifest.json',
-  'icons/icon-192.png',
-  'icons/icon-512.png'
+  '/Barylie/',
+  '/Barylie/index.html',
+  '/Barylie/style.css',
+  '/Barylie/app.js',
+  '/Barylie/manifest.json',
+  '/Barylie/icons/icon-192.png',
+  '/Barylie/icons/icon-512.png'
 ];
 
 // Instala y guarda archivos en cache
