@@ -6,7 +6,7 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
   <title>Inventario Almacén PWA</title>
-  <script src="https://github.com/stripe2022/Barylie/blob/main/html5-qrcode.min.js"></script>
+  
 </head>
 <body>
   <header>
@@ -162,5 +162,13 @@
   
   
 </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('✅ Service Worker registrado'))
+      .catch(err => console.error('❌ Error al registrar SW:', err));
+  }
+</script>
+
 </body>
 </html>
