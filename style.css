@@ -398,3 +398,50 @@ button:hover {
   display: none;
 }
 
+.dropdown-backup {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  width: 97.5%;
+
+}
+
+.dropdown-menu {
+  
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  display: flex;
+  margin-top: 1.5rem;
+
+}
+
+.dropdown-menu button,
+.import-label {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 1em;
+  width: 100%;
+}
+
+.dropdown-menu button:hover,
+.import-label:hover {
+  background: #f0f0f0;
+}
+
+.import-label {
+  display: flex;
+  justify-content:center;
+  color: #000;
+  border-left: 2px solid #d4d7db;
+}
+
+.hidden {
+  display: none;
+}
+
+

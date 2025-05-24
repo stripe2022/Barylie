@@ -444,6 +444,88 @@ function guardarProducto(e) {
   });
 }
 
+
+// Mostrar/ocultar menú
+document.addEventListener('click', e => {
+  const toggle = e.target.closest('.dropdown-toggle');
+  const menu = document.querySelector('.dropdown-menu');
+  if (toggle) {
+    menu.classList.toggle('hidden');
+  } else if (!e.target.closest('.dropdown-backup')) {
+    menu.classList.add('hidden');
+  }
+});
+
+// Exportar backup
+function exportarBackup() {
+  const tx = db.transaction(['productos', 'categorias'], 'readonly');
+  const productosStore = tx.objectStore('productos');
+  const categoriasStore = tx.objectStore('categorias');
+
+  const productosReq = productosStore.getAll();
+  const categoriasReq = categoriasStore.getAll();
+
+  tx.oncomplete = () => {
+    const backup = {
+      fecha: new Date().toISOString(),
+      productos: productosReq.result,
+      categorias: categoriasReq.result
+    };
+
+    const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const fecha = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `backup-inventario-${fecha}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+}
+
+// Importar backup y limpiar antes
+function importarBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(reader.result);
+
+      const tx = db.transaction(['productos', 'categorias'], 'readwrite');
+      const productosStore = tx.objectStore('productos');
+      const categoriasStore = tx.objectStore('categorias');
+
+      // Limpiar stores actuales
+      productosStore.clear();
+      categoriasStore.clear();
+
+      // Cargar categorías
+      backup.categorias.forEach(cat => {
+        categoriasStore.put(cat);
+      });
+
+      // Cargar productos
+      backup.productos.forEach(prod => {
+        productosStore.put(prod);
+      });
+
+      tx.oncomplete = () => {
+        alert('✅ Copia importada con éxito');
+        cargarCategorias(); // actualiza el <select>
+        if (typeof buscarProductos === 'function') buscarProductos(); // refresca resultados si estás ahí
+      };
+
+      tx.onerror = () => alert('❌ Error al importar');
+    } catch (err) {
+      alert('❌ Archivo inválido');
+    }
+  };
+
+  reader.readAsText(file);
+}
+
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
 // ===========================
