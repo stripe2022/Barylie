@@ -189,55 +189,7 @@ function volver() {
   document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
   document.getElementById("addScreen").classList.remove("hidden");
 }
-// BÚSQUEDA EN VIVO POR CÓDIGO O NOMBRE
-/*function buscarProductos() {
-  const consulta = $('buscarInput').value.trim().toLowerCase();
-  const contenedor = $('resultados');
-  contenedor.innerHTML = '';
 
-  const tx = db.transaction('productos', 'readonly');
-  const store = tx.objectStore('productos');
-  const request = store.getAll();
-
-  request.onsuccess = () => {
-    const resultados = request.result.filter(prod => {
-      return (
-        prod.codigo.toLowerCase().includes(consulta) ||
-        prod.nombre.toLowerCase().includes(consulta)
-      );
-    });
-
-    if (resultados.length === 0) {
-      contenedor.innerHTML = '<p>No se encontraron productos.</p>';
-      return;
-    }
-
-    
-    resultados.forEach(prod => {
-  const tarjeta = document.createElement('div');
-  tarjeta.className = 'tarjeta-producto';
-  tarjeta.innerHTML = `
-    <h3>${prod.nombre}</h3>
-    <p><strong>Código:</strong> ${prod.codigo}</p>
-    <p><strong>Referencia:</strong> ${prod.referencia}</p>
-  `;
-
- if (prod.fotoProducto) {
-  const blob1 = new Blob([new Uint8Array(prod.fotoProducto)], { type: 'image/jpeg' });
-  const url1 = URL.createObjectURL(blob1);
-  const img1 = document.createElement('img');
-  img1.src = url1;
-  img1.style.maxWidth = '100px';
-  tarjeta.appendChild(img1);
-}
-
-
-
-
-  contenedor.appendChild(tarjeta);
-});
-  };
-}*/
 
 function buscarProductos() {
   const consulta = $('buscarInput').value.trim().toLowerCase();
@@ -327,6 +279,98 @@ function volver() {
   document.getElementById("addScreen").classList.remove("hidden");
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';  }
+
+  // ===========================
+// FUNCIÓN PARA EDITAR PRODUCTO
+// ===========================
+function editarProducto(codigo) {
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const request = store.get(codigo);
+
+  request.onsuccess = function () {
+    const producto = request.result;
+    if (!producto) {
+      alert('Producto no encontrado');
+      return;
+    }
+
+    // Mostrar pantalla de edición
+    
+    showScreen('add'); // muestra <section id="addScreen">
+
+
+    // Llenar campos del formulario
+    $('codigo').value = producto.codigo;
+    $('referencia').value = producto.referencia;
+    $('nombre').value = producto.nombre;
+    $('proveedor').value = producto.proveedor;
+    $('categoria').value = producto.categoria;
+    $('descripcion').value = producto.descripcion;
+    $('cantidad').value = producto.cantidad;
+    $('cajas').value = producto.cajas;
+    $('precioOriginal').value = producto.precioOriginal;
+    $('tasa').value = producto.tasa;
+    $('precioCosto').value = producto.precioCosto;
+    $('precioVenta').value = producto.precioVenta;
+    $('stock').value = producto.stock;
+
+    // Mostrar imágenes si existen
+    if (producto.fotoProducto) {
+      const blob1 = new Blob([new Uint8Array(producto.fotoProducto)], { type: 'image/jpeg' });
+      $('preview1').src = URL.createObjectURL(blob1);
+    }
+    if (producto.fotoEmbalaje) {
+      const blob2 = new Blob([new Uint8Array(producto.fotoEmbalaje)], { type: 'image/jpeg' });
+      $('preview2').src = URL.createObjectURL(blob2);
+    }
+
+    // Guardar código en un input hidden para saber si se está editando
+    $('productIndex').value = producto.codigo;
+  };
+}
+
+// ===========================
+// ACTUALIZAR EN LUGAR DE CREAR
+// ===========================
+function guardarProducto(e) {
+  e.preventDefault();
+
+  Promise.all([
+    capturarFoto(1),
+    capturarFoto(2)
+  ]).then(([fotoProducto, fotoEmbalaje]) => {
+    const producto = {
+      codigo: $('codigo').value.trim(),
+      referencia: $('referencia').value.trim(),
+      nombre: $('nombre').value.trim(),
+      proveedor: $('proveedor').value.trim(),
+      categoria: $('categoria').value,
+      descripcion: $('descripcion').value.trim(),
+      cantidad: parseInt($('cantidad').value) || 0,
+      cajas: parseInt($('cajas').value) || 0,
+      precioOriginal: parseFloat($('precioOriginal').value) || 0,
+      tasa: parseFloat($('tasa').value) || 1,
+      precioCosto: parseFloat($('precioCosto').value) || 0,
+      precioVenta: parseFloat($('precioVenta').value) || 0,
+      stock: parseInt($('stock').value) || 0,
+      fotoProducto,
+      fotoEmbalaje
+    };
+
+    // Si hay un valor en productIndex, es una edición
+    const esEdicion = $('productIndex').value;
+
+    const tx = db.transaction('productos', 'readwrite');
+    tx.objectStore('productos').put(producto);
+    tx.oncomplete = () => {
+      alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
+      resetForm();
+      $('productIndex').value = '';
+    };
+    tx.onerror = () => alert('Error al guardar el producto');
+  });
+}
 
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
