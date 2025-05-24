@@ -46,32 +46,29 @@ function abrirDB() {
   };
 }
 
-function ocultarTodasLasPantallas() {
-  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $('nav').classList.add('hidden'); // Oculta los botones principales (nav)
-}
-
 function activarPantallaAdd() {
   ocultarTodasLasPantallas();
   resetForm();
-  $('buscarInput').value = '';
   $('addScreen').classList.remove('hidden');
 }
 
 function activarPantallaSearch() {
   ocultarTodasLasPantallas();
+  $('searchScreen').classList.remove('hidden');
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';
-  $('searchScreen').classList.remove('hidden');
-  $('nav').classList.remove('hidden'); // Mostrar botones si lo deseas aquí
 }
 
 function activarPantallaStock() {
   ocultarTodasLasPantallas();
+  $('stockScreen').classList.remove('hidden');
   $('buscarStock').value = '';
   $('stockResultado').innerHTML = '';
-  $('stockScreen').classList.remove('hidden');
-  $('nav').classList.remove('hidden'); // Mostrar botones si lo deseas aquí
+}
+
+function ocultarTodasLasPantallas() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $('nav').classList.add('hidden'); // Oculta los botones del menú
 }
 
 
@@ -101,32 +98,64 @@ function guardarProducto(e) {
     };
     
 
+  const esEdicion = $('productIndex').value;
+
     const tx = db.transaction('productos', 'readwrite');
     tx.objectStore('productos').put(producto);
     tx.oncomplete = () => {
-      alert('Producto guardado con éxito');
+      alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
       resetForm();
+      $('productIndex').value = '';
+      $('addScreen').classList.add('hidden');  // Oculta el formulario
+      $('nav').classList.remove('hidden');     // Muestra los botones principales
     };
+
     tx.onerror = () => alert('Error al guardar el producto');
   });
 }
 
 function resetForm() {
+  // Limpiar formulario
   $('productForm')?.reset();
-  
+
+  // Restaurar el título
   $('tituloFormulario').textContent = 'Añadir Producto';
 
-  // Limpiar cualquier imagen con id que empiece por "preview"
+  // Limpiar miniaturas de imagen
   document.querySelectorAll('img[id^="preview"]').forEach(img => {
     img.removeAttribute('src');
   });
 
-  // Limpiar también los inputs de tipo file si tienen ids conocidos
+  // Limpiar archivos de tipo file
   document.querySelectorAll('input[type="file"]').forEach(input => {
     input.value = '';
   });
+
+  // Limpiar el campo oculto de edición
+  $('productIndex').value = '';
+
+  
 }
 
+function cancelarOperacion() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $('nav').classList.remove('hidden');
+  $('productForm')?.reset(); // Opcional: limpia los campos si estás en el formulario
+  $('tituloFormulario').textContent = 'Añadir Producto';
+}
+
+function cancelarBusqueda() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $('nav').classList.remove('hidden');
+  $('buscarInput').value = '';
+  $('resultados').innerHTML = '';
+}
+function cancelarStock() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $('nav').classList.remove('hidden');
+  $('buscarStock').value = '';
+  $('stockResultado').innerHTML = '';
+}
 
 
 function cargarCategorias() {
@@ -317,6 +346,11 @@ function volver() {
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';  }
 
+  function mostrarPantallaAddSinReset() {
+  ocultarTodasLasPantallas();
+  $('addScreen').classList.remove('hidden');
+}
+
   // ===========================
 // FUNCIÓN PARA EDITAR PRODUCTO
 // ===========================
@@ -334,7 +368,7 @@ function editarProducto(codigo) {
 
     // Mostrar pantalla de edición
     
-    showScreen('add'); // muestra <section id="addScreen">
+    mostrarPantallaAddSinReset();
     $('tituloFormulario').textContent = 'Editar Producto';
 
 

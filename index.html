@@ -103,7 +103,8 @@
 </div>
       <div class="actions">
         <button type="submit">Guardar</button>
-        <button type="button"  class="cancelar" onclick="resetForm()">Cancelar</button>
+        <button type="button" class="cancelar" onclick="cancelarOperacion()">Cancelar</button>
+
       </div>
     </form>
   </section>
@@ -113,7 +114,8 @@
   <h2>Buscar Producto</h2>
   <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
   <button onclick="scanCode(true)">Escanear</button>
-  <button type="button" class="cancelar" onclick="volver()">Cancelar</button>
+  <button type="button" class="cancelar" onclick="cancelarBusqueda()">Cancelar</button>
+
   <div id="resultados">
     
 
@@ -132,6 +134,8 @@
     <input type="text" id="buscarStock" placeholder="Buscar producto..." oninput="buscarStock()" />
     <button onclick="scanCode(false, true)">Escanear</button>
     <div id="stockResultado"></div>
+    <button type="button" class="cancelar" onclick="cancelarStock()">Cancelar</button>
+
   </section>
 
   <script src="app.js" defer></script>
