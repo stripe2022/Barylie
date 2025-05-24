@@ -272,8 +272,8 @@ button:hover {
   }
 
   .tarjeta-producto img {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     object-fit: cover;
     border-radius: 12px;
     border: 1px solid #ddd;
@@ -288,7 +288,12 @@ button:hover {
   font-size: 0.95rem;
 }
   .info h3{
-    padding: 0;
+    padding: 0px;
+    margin: 0px;
+    font-size: 90%;
+    font-weight: 600;
+    font-family: revert;
+     color: #555;
   }
 
 
