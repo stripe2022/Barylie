@@ -285,6 +285,8 @@ function renderizarResultados(resultados) {
       const img = document.createElement('img');
       img.src = url;
       img.alt = 'Foto del producto';
+      img.style.cursor = 'pointer';
+      img.onclick = () => mostrarImagenAmpliada(url);
       imgContainer.appendChild(img);
     }
 
@@ -350,4 +352,18 @@ function capturarFoto(index) {
     }, 'image/jpeg', 0.7);
   });
 }
+
+function mostrarImagenAmpliada(src) {
+  const modal = document.getElementById('modalImagen');
+  const imagen = document.getElementById('imagenAmpliada');
+  imagen.src = src;
+  modal.classList.remove('hidden');
+}
+
+function cerrarModal() {
+  const modal = document.getElementById('modalImagen');
+  modal.classList.add('hidden');
+  document.getElementById('imagenAmpliada').src = "";
+}
+
 
