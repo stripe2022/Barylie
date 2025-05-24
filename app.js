@@ -302,11 +302,13 @@ function renderizarResultados(resultados) {
 
     const btnEditar = document.createElement('button');
     btnEditar.textContent = '✏️ Editar';
+    btnEditar.classList.add('editar-btn'); // Estilo
     btnEditar.onclick = () => editarProducto(prod.codigo);
     acciones.appendChild(btnEditar);
 
     const btnEliminar = document.createElement('button');
     btnEliminar.textContent = '🗑️ Eliminar';
+     btnEliminar.classList.add('eliminar-btn'); // Estilo
     btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
     acciones.appendChild(btnEliminar);
 
