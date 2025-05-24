@@ -5,7 +5,8 @@ body {
   margin: 0;
   padding: 0;
   font-size: 21px;
-  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 header {
@@ -39,6 +40,7 @@ nav button {
 
 .screen {
   min-height: 100vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -443,5 +445,7 @@ button:hover {
 .hidden {
   display: none;
 }
+
+
 
 
