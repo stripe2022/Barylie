@@ -12,7 +12,7 @@
   <header>
     <h1>Barylie Admin</h1>
     <nav>
-      <button onclick="showScreen('add')">➕ Añadir</button>
+      <button onclick="resetForm(); showScreen('add'); $('buscarInput').value = '';">➕ Añadir</button>
       <button onclick="showScreen('search')">🔍 Buscar</button>
       <button onclick="showScreen('stock')">📦 Movimientos</button>
     </nav>
@@ -20,7 +20,8 @@
 
   <!-- Pantalla Añadir Producto -->
   <section id="addScreen" class="screen">
-    <h2>Añadir Producto</h2>
+    <h2 id="tituloFormulario">Añadir Producto</h2>
+     
     <form id="productForm">
       <input type="hidden" id="productIndex" />
       <div class="fila-doble">
@@ -144,12 +145,7 @@
     reader.readAsDataURL(file);
   }
   
-  function confirmarEliminar(codigo) {
-    if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
-      // Lógica para eliminarlo de IndexedDB o tu sistema
-      alert("Producto eliminado: " + codigo);
-    }
-  }
+  
 </script>
 </body>
 </html>

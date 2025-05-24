@@ -84,6 +84,8 @@ function guardarProducto(e) {
 
 function resetForm() {
   $('productForm')?.reset();
+  
+  $('tituloFormulario').textContent = 'Añadir Producto';
 
   // Limpiar cualquier imagen con id que empiece por "preview"
   document.querySelectorAll('img[id^="preview"]').forEach(img => {
@@ -196,6 +198,12 @@ function buscarProductos() {
   const contenedor = $('resultados');
   contenedor.innerHTML = '';
 
+  if (!consulta) {
+  contenedor.innerHTML = '';
+  return;
+}
+
+
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
   const request = store.getAll();
@@ -298,6 +306,7 @@ function editarProducto(codigo) {
     // Mostrar pantalla de edición
     
     showScreen('add'); // muestra <section id="addScreen">
+    $('tituloFormulario').textContent = 'Editar Producto';
 
 
     // Llenar campos del formulario
@@ -396,6 +405,24 @@ function capturarFoto(index) {
     }, 'image/jpeg', 0.7);
   });
 }
+
+function confirmarEliminar(codigo) {
+  if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
+    const tx = db.transaction('productos', 'readwrite');
+    const store = tx.objectStore('productos');
+    store.delete(codigo);
+
+    tx.oncomplete = () => {
+      alert("Producto eliminado: " + codigo);
+      buscarProductos(); // Actualiza la lista después de eliminar
+    };
+
+    tx.onerror = () => {
+      alert("Ocurrió un error al intentar eliminar el producto.");
+    };
+  }
+}
+
 
 function mostrarImagenAmpliada(src) {
   const modal = document.getElementById('modalImagen');
