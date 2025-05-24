@@ -11,10 +11,11 @@
 <body>
   <header>
     <h1>Barylie Shop</h1>
-    <nav>
-      <button onclick="resetForm(); showScreen('add'); $('buscarInput').value = '';">➕ Añadir</button>
-      <button onclick="showScreen('search')">🔍 Buscar</button>
-      <button onclick="showScreen('stock')">📦 Movimientos</button>
+    <nav id="nav">
+      <button onclick="activarPantallaAdd()">➕ Añadir</button>
+      <button onclick="activarPantallaSearch()">🔍 Buscar</button>
+      <button onclick="activarPantallaStock()">📦 Movimientos</button>
+
     </nav>
   </header>
 

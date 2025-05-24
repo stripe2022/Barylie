@@ -46,6 +46,35 @@ function abrirDB() {
   };
 }
 
+function ocultarTodasLasPantallas() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $('nav').classList.add('hidden'); // Oculta los botones principales (nav)
+}
+
+function activarPantallaAdd() {
+  ocultarTodasLasPantallas();
+  resetForm();
+  $('buscarInput').value = '';
+  $('addScreen').classList.remove('hidden');
+}
+
+function activarPantallaSearch() {
+  ocultarTodasLasPantallas();
+  $('buscarInput').value = '';
+  $('resultados').innerHTML = '';
+  $('searchScreen').classList.remove('hidden');
+  $('nav').classList.remove('hidden'); // Mostrar botones si lo deseas aquí
+}
+
+function activarPantallaStock() {
+  ocultarTodasLasPantallas();
+  $('buscarStock').value = '';
+  $('stockResultado').innerHTML = '';
+  $('stockScreen').classList.remove('hidden');
+  $('nav').classList.remove('hidden'); // Mostrar botones si lo deseas aquí
+}
+
+
 function guardarProducto(e) {
   e.preventDefault();
 
