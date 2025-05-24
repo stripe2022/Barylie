@@ -1,6 +1,6 @@
 body {
   font-family: sans-serif;
-  background: #eee;
+  background: #eac8c8;
   color: #000;
   margin: 0;
   padding: 0;
@@ -9,17 +9,30 @@ body {
 }
 
 header {
-  background: #111;
+  background: #eac8c8;
   color: #fff;
   padding: 10px;
   text-align: center;
 }
 
+h1{
+ color: #562f2f;
+ font-family: cursive;
+ margin-top: 3rem;
+}
+
+nav  {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 4rem;
+}
+
 nav button {
   font-size: 1.2em;
   margin: 5px;
-  padding: 10px;
-  background: #eee;
+  padding: 1rem;
+  background: #fbfbfb;
   border: none;
   border-radius: 5px;
 }
