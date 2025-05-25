@@ -86,6 +86,7 @@ function guardarProducto(e) {
       nombre: $('nombre').value.trim(),
       proveedor: $('proveedor').value.trim(),
       categoria: $('categoria').value,
+      zona: $('zona').value.trim(), // ✅ Campo agregado aquí
       descripcion: $('descripcion').value.trim(),
       cantidad: parseInt($('cantidad').value) || 0,
       cajas: parseInt($('cajas').value) || 0,
@@ -319,7 +320,7 @@ function renderizarResultados(resultados) {
     info.className = 'info';
     info.innerHTML = `
       <h3>${prod.nombre}</h3>
-      <p>🏷️ <strong>Código:</strong> ${prod.codigo}</p>
+      <p>📝 <strong>Zona:</strong> ${prod.zona}</p>
       <p>📦 <strong>Stock:</strong> ${prod.stock || 0}</p>
       <p>💲 <strong>Precio:</strong> ${prod.precioVenta || 0} MN</p>
     `;
@@ -385,6 +386,7 @@ function editarProducto(codigo) {
     $('nombre').value = producto.nombre;
     $('proveedor').value = producto.proveedor;
     $('categoria').value = producto.categoria;
+    $('zona').value = producto.zona;
     $('descripcion').value = producto.descripcion;
     $('cantidad').value = producto.cantidad;
     $('cajas').value = producto.cajas;
