@@ -50,6 +50,7 @@ function activarPantallaAdd() {
   ocultarTodasLasPantallas();
   resetForm();
   $('addScreen').classList.remove('hidden');
+ 
 }
 
 function activarPantallaSearch() {
@@ -103,11 +104,14 @@ function guardarProducto(e) {
     const tx = db.transaction('productos', 'readwrite');
     tx.objectStore('productos').put(producto);
     tx.oncomplete = () => {
+      console.log('✅ Producto guardado, ocultando formulario...');
       alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
-      resetForm();
+      
       $('productIndex').value = '';
       $('addScreen').classList.add('hidden');  // Oculta el formulario
       $('nav').classList.remove('hidden');     // Muestra los botones principales
+     
+      resetForm();
     };
 
     tx.onerror = () => alert('Error al guardar el producto');
@@ -115,6 +119,7 @@ function guardarProducto(e) {
 }
 
 function resetForm() {
+  
   // Limpiar formulario
   $('productForm')?.reset();
 
@@ -133,6 +138,8 @@ function resetForm() {
 
   // Limpiar el campo oculto de edición
   $('productIndex').value = '';
+
+  
 
   
 }
@@ -405,44 +412,6 @@ function editarProducto(codigo) {
 // ===========================
 // ACTUALIZAR EN LUGAR DE CREAR
 // ===========================
-function guardarProducto(e) {
-  e.preventDefault();
-
-  Promise.all([
-    capturarFoto(1),
-    capturarFoto(2)
-  ]).then(([fotoProducto, fotoEmbalaje]) => {
-    const producto = {
-      codigo: $('codigo').value.trim(),
-      referencia: $('referencia').value.trim(),
-      nombre: $('nombre').value.trim(),
-      proveedor: $('proveedor').value.trim(),
-      categoria: $('categoria').value,
-      descripcion: $('descripcion').value.trim(),
-      cantidad: parseInt($('cantidad').value) || 0,
-      cajas: parseInt($('cajas').value) || 0,
-      precioOriginal: parseFloat($('precioOriginal').value) || 0,
-      tasa: parseFloat($('tasa').value) || 1,
-      precioCosto: parseFloat($('precioCosto').value) || 0,
-      precioVenta: parseFloat($('precioVenta').value) || 0,
-      stock: parseInt($('stock').value) || 0,
-      fotoProducto,
-      fotoEmbalaje
-    };
-
-    // Si hay un valor en productIndex, es una edición
-    const esEdicion = $('productIndex').value;
-
-    const tx = db.transaction('productos', 'readwrite');
-    tx.objectStore('productos').put(producto);
-    tx.oncomplete = () => {
-      alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
-      resetForm();
-      $('productIndex').value = '';
-    };
-    tx.onerror = () => alert('Error al guardar el producto');
-  });
-}
 
 
 // Mostrar/ocultar menú

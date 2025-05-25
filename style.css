@@ -54,13 +54,15 @@ h2 {
   
 }
 
+.hidden {
+  display: none !important;
+}
+
 #resultados, #stockResultado {
   height: calc(100vh - 200px); /* Ajusta según tu header/nav/buttons */
   overflow-y: auto;
 }
-.hidden {
-  display: none;
-}
+
 
 label {
   display: block;
@@ -396,9 +398,7 @@ button:hover {
   z-index: 10000;
 }
 
-.hidden {
-  display: none;
-}
+
 
 .dropdown-backup {
   position: relative;
@@ -442,9 +442,7 @@ button:hover {
   border-left: 2px solid #d4d7db;
 }
 
-.hidden {
-  display: none;
-}
+
 
 
 
