@@ -21,8 +21,12 @@
     <button onclick="exportarBackup()">🗂️ Exportar</button>
     <label class="import-label">📥 Importar
       <input type="file" accept=".json" onchange="importarBackup(event)" hidden>
+      
     </label>
   </div>
+  <button onclick="mostrarPantallaMovimientos()">📥 Entrada / 📤 Salida</button>
+<button onclick="verHistorial()">📋 Ver Historial</button>
+
 </div>
 
 
@@ -144,19 +148,50 @@
 
 
 
-  <!-- Pantalla Movimientos -->
-  <section id="stockScreen" class="screen hidden">
-    <h2>Movimientos de Inventario</h2>
-    <input type="text" id="buscarStock" placeholder="Buscar producto..." oninput="buscarStock()" />
-    <button onclick="scanCode(false, true)">Escanear</button>
-    <div id="stockResultado"></div>
-    <button type="button" class="cancelar" onclick="cancelarStock()">Cancelar</button>
+ <section id="movimientoScreen" class="hidden screen">
+  <h2>🔄 Registrar Movimiento</h2>
 
-  </section>
+  <form id="formMovimiento" onsubmit="registrarMovimientoDesdeFormulario(event)">
+    <label for="productoMovimiento">Producto:</label>
+    <input type="text" id="buscarProductoMovimiento" placeholder="Buscar producto por código, nombre o referencia">
+    <select id="productoMovimiento" required></select>
+
+   
+
+    <div style="margin: 10px 0;">
+      <img id="previewMovimiento" src="" alt="Foto producto" style="max-width: 150px; max-height: 150px;">
+    </div>
+
+    <p>📦 Stock actual: <strong id="stockActual">--</strong></p>
+
+    <label for="tipoMovimiento">Tipo:</label>
+    <select id="tipoMovimiento" required>
+      <option value="entrada">➕ Entrada</option>
+      <option value="salida">➖ Salida</option>
+    </select>
+
+    <label for="cantidadMovimiento">Cantidad:</label>
+    <input type="number" id="cantidadMovimiento" min="1" required>
+
+    <label for="notaMovimiento">Nota (opcional):</label>
+    <input type="text" id="notaMovimiento" placeholder="Proveedor, motivo, etc.">
+
+    <button type="submit">Registrar Movimiento</button>
+    <button type="button" onclick="volver()">Cancelar</button>
+  </form>
+</section>
+
+<section id="historialScreen" class="hidden screen">
+  <h2>📋 Historial de Movimientos</h2>
+  <div id="listaMovimientos"></div>
+  <button onclick="volver()">Volver</button>
+</section>
+
 
   
 
   <script src="app.js" defer></script>
+  <script src="movimientos.js" defer></script>
 <script>
   function previewImage(input, index) {
     const file = input.files[0];

@@ -27,13 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // INDEXEDDB
 // ===========================
 function abrirDB() {
-  const request = indexedDB.open('inventarioDB', 1);
+  const request = indexedDB.open('inventarioDB', 2);
 
   request.onupgradeneeded = function (e) {
     const db = e.target.result;
     const store = db.createObjectStore('productos', { keyPath: 'codigo' });
     store.createIndex('nombre', 'nombre', { unique: false });
     db.createObjectStore('categorias', { keyPath: 'nombre' });
+    db.createObjectStore('movimientos', { keyPath: 'id', autoIncrement: true });
+
   };
 
   request.onsuccess = function (e) {
@@ -427,20 +429,22 @@ document.addEventListener('click', e => {
   }
 });
 
-// Exportar backup
 function exportarBackup() {
-  const tx = db.transaction(['productos', 'categorias'], 'readonly');
+  const tx = db.transaction(['productos', 'categorias', 'movimientos'], 'readonly');
   const productosStore = tx.objectStore('productos');
   const categoriasStore = tx.objectStore('categorias');
+  const movimientosStore = tx.objectStore('movimientos');
 
   const productosReq = productosStore.getAll();
   const categoriasReq = categoriasStore.getAll();
+  const movimientosReq = movimientosStore.getAll();
 
   tx.oncomplete = () => {
     const backup = {
       fecha: new Date().toISOString(),
       productos: productosReq.result,
-      categorias: categoriasReq.result
+      categorias: categoriasReq.result,
+      movimientos: movimientosReq.result // ✅ se agrega el historial
     };
 
     const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
@@ -454,7 +458,6 @@ function exportarBackup() {
   };
 }
 
-// Importar backup y limpiar antes
 function importarBackup(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -464,28 +467,31 @@ function importarBackup(event) {
     try {
       const backup = JSON.parse(reader.result);
 
-      const tx = db.transaction(['productos', 'categorias'], 'readwrite');
+      const tx = db.transaction(['productos', 'categorias', 'movimientos'], 'readwrite');
       const productosStore = tx.objectStore('productos');
       const categoriasStore = tx.objectStore('categorias');
+      const movimientosStore = tx.objectStore('movimientos');
 
-      // Limpiar stores actuales
       productosStore.clear();
       categoriasStore.clear();
+      movimientosStore.clear();
 
-      // Cargar categorías
-      backup.categorias.forEach(cat => {
+      backup.categorias?.forEach(cat => {
         categoriasStore.put(cat);
       });
 
-      // Cargar productos
-      backup.productos.forEach(prod => {
+      backup.productos?.forEach(prod => {
         productosStore.put(prod);
+      });
+
+      backup.movimientos?.forEach(mov => {
+        movimientosStore.put(mov);
       });
 
       tx.oncomplete = () => {
         alert('✅ Copia importada con éxito');
-        cargarCategorias(); // actualiza el <select>
-        if (typeof buscarProductos === 'function') buscarProductos(); // refresca resultados si estás ahí
+        cargarCategorias();
+        if (typeof buscarProductos === 'function') buscarProductos();
       };
 
       tx.onerror = () => alert('❌ Error al importar');
@@ -496,6 +502,8 @@ function importarBackup(event) {
 
   reader.readAsText(file);
 }
+
+
 
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
