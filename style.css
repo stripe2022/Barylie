@@ -257,6 +257,137 @@ select {
   background-color: #d64545;
 }
 
+#formMovimiento {
+  max-width: 800px;
+  margin: auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+#formMovimiento input,
+#formMovimiento select {
+  font-size: 1.1em;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+#previewMovimiento {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+
+#stockActual {
+  font-weight: bold;
+  color: #333;
+}
+
+#formMovimiento button {
+  padding: 12px;
+  font-size: 1em;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#formMovimiento button[type="submit"] {
+  background-color: #4caf50;
+  color: white;
+}
+
+#formMovimiento button[type="submit"]:hover {
+  background-color: #3b9140;
+}
+
+#formMovimiento button.cancelar {
+  background-color: #f44336;
+  color: white;
+}
+
+#formMovimiento button.cancelar:hover {
+  background-color: #c62d24;
+}
+
+#historialFiltradoScreen {
+  max-width: 900px;
+  margin: auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+#historialFiltradoScreen label {
+  font-weight: 600;
+  color: #562f2f;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 1rem;
+}
+
+#historialFiltradoScreen select,
+#historialFiltradoScreen input[type="date"] {
+  font-size: 1.1em;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#historialFiltradoScreen button {
+  font-size: 1em;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+#historialFiltradoScreen button:first-of-type {
+  background-color: #4caf50;
+  color: white;
+}
+
+#historialFiltradoScreen button:first-of-type:hover {
+  background-color: #3e8e41;
+}
+
+#historialFiltradoScreen .cancelar {
+  background-color: #f44336;
+  color: white;
+}
+
+#historialFiltradoScreen .cancelar:hover {
+  background-color: #d32f2f;
+}
+
+#resultadosFiltrados {
+  max-height: 400px;
+  overflow-y: auto;
+  border-top: 1px solid #ccc;
+  padding-top: 1rem;
+}
 
 h2 {
   font-size: 1.5rem;

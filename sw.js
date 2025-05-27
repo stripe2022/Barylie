@@ -4,6 +4,8 @@ const ASSETS = [
   '/Barylie/index.html',
   '/Barylie/style.css',
   '/Barylie/app.js',
+  '/Barylie/movimientos.js',
+  '/Barylie/historial.js',
   '/Barylie/manifest.json',
   '/Barylie/icons/icon-192.png',
   '/Barylie/icons/icon-512.png'

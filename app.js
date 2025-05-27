@@ -256,6 +256,10 @@ function calcularPrecioVenta() {
   }
 }
 
+function mostrarPantallaAddSinReset() {
+  showScreen('add'); // Usa tu función genérica
+  $('nav').classList.add('hidden');
+}
 
 
 function buscarProductos() {
