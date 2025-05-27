@@ -392,24 +392,26 @@ select {
 
 .popup {
   position: fixed;
-  top: 80px; /* o ajusta a 60px si el header es bajo */
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   background-color: #323232;
-  color: white;
+  color: #fff;
   padding: 12px 20px;
   border-radius: 10px;
-  font-size: 1em;
+  font-size: 1rem;
+  z-index: 10000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 9999;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s ease, top 0.3s ease;
 }
 
 .popup.show {
   opacity: 1;
-  top: 100px;
+  pointer-events: auto;
 }
+
 
 
 .popup.exito {
