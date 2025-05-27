@@ -143,7 +143,7 @@ function registrarMovimientoDesdeFormulario(e) {
   const usuario = JSON.parse(localStorage.getItem('usuarioActivo'))?.nombre || 'Desconocido';
 
   if (!codigo || isNaN(cantidad) || cantidad <= 0) {
-    alert('Por favor ingresa una cantidad válida.');
+    mostrarPopupMovimiento('❌ Ingresa una cantidad válida.', 'error');
     return;
   }
 
@@ -153,7 +153,10 @@ function registrarMovimientoDesdeFormulario(e) {
 
   req.onsuccess = () => {
     const producto = req.result;
-    if (!producto) return alert('Producto no encontrado');
+    if (!producto) {
+      mostrarPopupMovimiento('❌ Producto no encontrado.', 'error');
+      return;
+    }
 
     if (tipo === 'salida' && producto.stock < cantidad) {
       if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
@@ -177,7 +180,10 @@ function registrarMovimientoDesdeFormulario(e) {
     tx2.objectStore('movimientos').add(movimiento);
 
     tx2.oncomplete = () => {
-      alert('✅ Movimiento registrado');
+      const mensaje = `✅ Has ${tipo === 'entrada' ? 'añadido' : 'retirado'} ${cantidad} unidades.\n📦 Total actual: ${producto.stock}`;
+      mostrarPopupMovimiento(mensaje, 'exito');
+
+      // Reset del formulario
       document.getElementById('formMovimiento').reset();
       document.getElementById('stockActual').textContent = '--';
       document.getElementById('previewMovimiento')?.removeAttribute('src');
@@ -186,6 +192,7 @@ function registrarMovimientoDesdeFormulario(e) {
     };
   };
 }
+
 
 function verHistorial() {
   mostrarPantalla('historial');

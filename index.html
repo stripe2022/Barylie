@@ -27,6 +27,7 @@
       <button onclick="mostrarPantallaHistorialConFiltro()">📂 Historial con Filtro</button>
     </nav>
   </header>
+  
 
   <main>
     <!-- Pantalla Añadir Producto -->
@@ -146,6 +147,7 @@
     <!-- Pantalla Movimiento -->
     <section id="movimientoScreen" class="screen hidden">
       <h2>🔄 Registrar Movimiento</h2>
+      <div id="popupMovimiento" class="popup hidden"></div>
       <form id="formMovimiento" onsubmit="registrarMovimientoDesdeFormulario(event)">
         <label for="productoMovimiento">Producto:</label>
         <input type="text" id="buscarProductoMovimiento" placeholder="Buscar producto por código, nombre o referencia">
@@ -187,6 +189,8 @@
       <div id="resultadosFiltrados"></div>
     </section>
   </main>
+  
+
 
   <script src="app.js" defer></script>
   <script src="movimientos.js" defer></script>

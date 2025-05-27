@@ -553,4 +553,14 @@ function cerrarModal() {
   document.getElementById('imagenAmpliada').src = "";
 }
 
+function mostrarPopupMovimiento(texto, tipo = 'exito') {
+  const popup = document.getElementById('popupMovimiento');
+  popup.textContent = texto;
+  popup.className = `popup show ${tipo}`;
+
+  setTimeout(() => {
+    popup.classList.remove('show');
+  }, 3500);
+}
+
 

@@ -389,6 +389,37 @@ select {
   padding-top: 1rem;
 }
 
+
+.popup {
+  position: fixed;
+  top: 80px; /* o ajusta a 60px si el header es bajo */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 1em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease, top 0.3s ease;
+}
+
+.popup.show {
+  opacity: 1;
+  top: 100px;
+}
+
+
+.popup.exito {
+  background-color: #4caf50;
+}
+
+.popup.error {
+  background-color: #f44336;
+}
+
 h2 {
   font-size: 1.5rem;
   color: #562f2f;
