@@ -334,7 +334,7 @@ function renderizarResultados(resultados) {
     acciones.appendChild(btnEditar);
 
     const btnEliminar = document.createElement('button');
-    btnEliminar.textContent = '🗑️ Eliminar';
+    btnEliminar.textContent = '🗑️';
      btnEliminar.classList.add('eliminar-btn'); // Estilo
     btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
     acciones.appendChild(btnEliminar);
