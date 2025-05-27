@@ -255,10 +255,7 @@ function calcularPrecioVenta() {
     $('precioVenta').value = venta.toFixed(2);
   }
 }
-function volver() {
-  document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
-  document.getElementById("addScreen").classList.remove("hidden");
-}
+
 
 
 function buscarProductos() {
@@ -350,16 +347,7 @@ function renderizarResultados(resultados) {
   });
 }
 
-function volver() {
-  document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
-  document.getElementById("addScreen").classList.remove("hidden");
-  $('buscarInput').value = '';
-  $('resultados').innerHTML = '';  }
 
-  function mostrarPantallaAddSinReset() {
-  ocultarTodasLasPantallas();
-  $('addScreen').classList.remove('hidden');
-}
 
   // ===========================
 // FUNCIÓN PARA EDITAR PRODUCTO

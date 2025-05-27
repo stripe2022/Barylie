@@ -25,7 +25,8 @@
     </label>
   </div>
   <button onclick="mostrarPantallaMovimientos()">📥 Entrada / 📤 Salida</button>
-<button onclick="verHistorial()">📋 Ver Historial</button>
+<button onclick="mostrarPantallaHistorialConFiltro()">📂 Historial con Filtro</button>
+
 
 </div>
 
@@ -163,6 +164,8 @@
     </div>
 
     <p>📦 Stock actual: <strong id="stockActual">--</strong></p>
+    <button type="button" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info Producto</button>
+
 
     <label for="tipoMovimiento">Tipo:</label>
     <select id="tipoMovimiento" required>
@@ -177,21 +180,40 @@
     <input type="text" id="notaMovimiento" placeholder="Proveedor, motivo, etc.">
 
     <button type="submit">Registrar Movimiento</button>
-    <button type="button" onclick="volver()">Cancelar</button>
+    <button type="button" onclick="cancelarOperacion()">Cancelar</button>
   </form>
 </section>
 
-<section id="historialScreen" class="hidden screen">
+<section id="historialFiltradoScreen" class="screen hidden">
   <h2>📋 Historial de Movimientos</h2>
-  <div id="listaMovimientos"></div>
-  <button onclick="volver()">Volver</button>
+
+  <div>
+    <label>Tipo:
+      <select id="filtroTipo">
+        <option value="">Todos</option>
+        <option value="entrada">Entrada</option>
+        <option value="salida">Salida</option>
+      </select>
+    </label>
+
+    <label>Fecha:
+      <input type="date" id="filtroFecha">
+    </label>
+
+    <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
+    <button onclick="cancelarOperacion()">Cancelar</button>
+  </div>
+
+  <div id="resultadosFiltrados"></div>
 </section>
+
 
 
   
 
   <script src="app.js" defer></script>
   <script src="movimientos.js" defer></script>
+  <script src="historial.js" defer></script>
 <script>
   function previewImage(input, index) {
     const file = input.files[0];
