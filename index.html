@@ -6,7 +6,6 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
   <title>Inventario Almacén PWA</title>
-  
 </head>
 <body>
   <header>
@@ -14,226 +13,199 @@
     <nav id="nav">
       <button onclick="activarPantallaAdd()">➕ Añadir</button>
       <button onclick="activarPantallaSearch()">🔍 Buscar</button>
-      <button onclick="activarPantallaStock()">📦 Movimientos</button>
-      <div class="dropdown-backup">
-  <button class="dropdown-toggle">📁 Copia de seguridad </button>
-  <div class="dropdown-menu hidden">
-    <button onclick="exportarBackup()">🗂️ Exportar</button>
-    <label class="import-label">📥 Importar
-      <input type="file" accept=".json" onchange="importarBackup(event)" hidden>
       
-    </label>
-  </div>
-  <button onclick="mostrarPantallaMovimientos()">📥 Entrada / 📤 Salida</button>
-<button onclick="mostrarPantallaHistorialConFiltro()">📂 Historial con Filtro</button>
-
-
-</div>
-
-
+      <div class="dropdown-backup">
+        <button class="dropdown-toggle">📁 Copia de seguridad</button>
+        <div class="dropdown-menu hidden">
+          <button onclick="exportarBackup()">🗂️ Exportar</button>
+          <label class="import-label">📥 Importar
+            <input type="file" accept=".json" onchange="importarBackup(event)" hidden>
+          </label>
+        </div>
+      </div>
+      <button onclick="mostrarPantallaMovimientos()">📥 Entrada / 📤 Salida</button>
+      <button onclick="mostrarPantallaHistorialConFiltro()">📂 Historial con Filtro</button>
     </nav>
   </header>
 
-  <!-- Pantalla Añadir Producto -->
-  <section id="addScreen" class="screen hidden">
-    <h2 id="tituloFormulario">Añadir Producto</h2>
-     
-    <form id="productForm">
-      <input type="hidden" id="productIndex" />
-      <div class="fila-doble">
-        <label>Código:
-          <input type="text" id="codigo" />
-          <button type="button" onclick="scanCode()">Escanear</button>
-          <div id="reader" style="display:none;"></div>
-          <p id="result"></p>
-        </label>
-        <label>Referencia:
-          <input type="text" id="referencia" />
-        </label>
-      </div>
-      <div class="zona-style">
-  <label class="etiqueta-zona">Zona:
-    <input type="text" id="zona">
-  </label>
-</div>
+  <main>
+    <!-- Pantalla Añadir Producto -->
+    <section id="addScreen" class="screen hidden">
+      <h2 id="tituloFormulario">Añadir Producto</h2>
+      <form id="productForm">
+        <input type="hidden" id="productIndex" />
 
+        <div class="fila-doble">
+          <label>Código:
+            <input type="text" id="codigo" />
+            <button type="button" onclick="scanCode()">Escanear</button>
+            <div id="reader" style="display:none;"></div>
+            <p id="result"></p>
+          </label>
+          <label>Referencia:
+            <input type="text" id="referencia" />
+          </label>
+        </div>
 
-      <div class="fila-doble">
-        <label>Nombre:
-          <input type="text" id="nombre" required />
+        <label class="etiqueta-zona">Zona:
+          <input type="text" id="zona">
         </label>
-        <label>Proveedor:
-          <input type="text" id="proveedor" />
-        </label>
-      </div>
 
-      <label for="categoria">Categoría:</label>
-      <div class="cat">
-        <div class="cat1">
-          <div class="categoria-contenedor">
-            <select id="categoria"></select>
-            <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
+        <div class="fila-doble">
+          <label>Nombre:
+            <input type="text" id="nombre" required />
+          </label>
+          <label>Proveedor:
+            <input type="text" id="proveedor" />
+          </label>
+        </div>
+
+        <label for="categoria">Categoría:</label>
+        <div class="cat">
+          <div class="cat1">
+            <div class="categoria-contenedor">
+              <select id="categoria"></select>
+              <button type="button" onclick="eliminarCategoriaSeleccionada()" title="Eliminar categoría seleccionada">🗑️</button>
+            </div>
+          </div>
+          <div class="cat2">
+            <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
+            <button type="button" onclick="addCategoria()">Añadir Categoría</button>
           </div>
         </div>
 
-        <div class="cat2">
-          <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" />
-          <button type="button" onclick="addCategoria()">Añadir Categoría</button>
+        <div class="fotos-row">
+          <div>
+            <label>Foto 1:
+              <label class="custom-file">
+                <span class="custom-file-label">Producto</span>
+                <input type="file" accept="image/*" onchange="previewImage(this, 1)" class="boton-foto" />
+              </label>
+              <img id="preview1" style="max-height: 100px; display: block; margin-top: 5px;" />
+            </label>
+          </div>
+          <div>
+            <label>Foto 2:
+              <label class="custom-file">
+                <span class="custom-file-label">Embalaje</span>
+                <input type="file" accept="image/*" onchange="previewImage(this, 2)" class="boton-foto" />
+              </label>
+              <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div class="fotos-row">
-  <div>
-    <label>Foto 1:
-      <label class="custom-file"><span class="custom-file-label">Producto</span>
-        <input type="file" accept="image/*" onchange="previewImage(this, 1)" class="boton-foto" />
-      </label>
-      <img id="preview1" style="max-height: 100px; display: block; margin-top: 5px;" />
-    </label>
-  </div>
-  <div>
-    <label>Foto 2:
-      <label class="custom-file"><span class="custom-file-label">Embalaje</span>
-        <input type="file" accept="image/*" onchange="previewImage(this, 2)" class="boton-foto" />
-      </label>
-      <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
-    </label>
-  </div>
-</div>
-        <img id="preview2" style="max-height: 100px; display: block; margin-top: 5px;" />
-      </label>
+        <label>Descripción:
+          <textarea id="descripcion"></textarea>
+        </label>
 
-      <label>Descripción:
-        <textarea id="descripcion"></textarea>
-      </label>
+        <div class="fila-doble">
+          <label>Piezas: <input type="number" step="any" id="cantidad" /></label>
+          <label>N° Bultos: <input type="number" step="any" id="cajas" /></label>
+        </div>
+        <div class="fila-doble">
+          <label>Precio Original ($): <input type="number" step="any" id="precioOriginal" required /></label>
+          <label>Tasa de Cambio (MN): <input type="number" step="any" id="tasa" /></label>
+        </div>
+        <div class="fila-doble">
+          <label>Precio Costo (MN): <input type="number" step="any" id="precioCosto" required /></label>
+          <label>Precio Venta (MN): <input type="number" step="any" id="precioVenta" required /></label>
+        </div>
+        <label>Existencia en Almacén:
+          <input type="number" step="any" id="stock" required />
+        </label>
 
-      <div class="fila-doble">
-  <label>Piezas: <input type="number" step="any" id="cantidad" /></label>
-  <label>N° Bultos : <input type="number" step="any" id="cajas" /></label>
-</div>
-<div class="fila-doble">
-  <label>Precio Original ($): <input type="number" step="any" id="precioOriginal" required /></label>
-  <label>Tasa de Cambio (MN): <input type="number" step="any" id="tasa" /></label>
-</div>
-<div class="fila-doble">
-  <label>Precio Costo (MN): <input type="number" step="any" id="precioCosto" required /></label>
-  <label>Precio Venta (MN): <input type="number" step="any" id="precioVenta" required /></label>
-</div>
-<div class="cantidadCentro">
-  <label>Existencia en Almacen: <input type="number" step="any" id="stock" required /></label>
-</div>
-      <div class="actions">
-        <button type="submit">Guardar</button>
-        <button type="button" class="cancelar" onclick="cancelarOperacion()">Cancelar</button>
+        <div class="actions">
+          <button type="submit">Guardar</button>
+          <button type="button" class="cancelar" onclick="cancelarOperacion()">Cancelar</button>
+        </div>
+      </form>
+    </section>
 
-      </div>
-    </form>
-  </section>
-
- <!-- Pantalla Buscar Producto -->
-<section id="searchScreen" class="screen hidden">
+    <!-- Pantalla Buscar Producto -->
+    <section id="searchScreen" class="screen hidden">
   <h2>Buscar Producto</h2>
-  <input type="text" id="buscarInput" placeholder="Buscar..." oninput="buscarProductos()" />
-  <button onclick="scanCode(true)">Escanear</button>
+
+ 
+  <div class="barra-busqueda">
+    <input type="text" id="buscarInput" placeholder="Código o nombre..." oninput="buscarProductos()" />
+    <button class="btn-scan" onclick="scanCode(true)">🔍</button>
+  </div>
+
   <button type="button" class="cancelar" onclick="cancelarBusqueda()">Cancelar</button>
 
-  <div id="resultados">
-    
-
-  </div>
+  <div id="resultados"></div>
 </section>
-<div id="modalImagen" class="modal hidden">
-  <span class="cerrar-modal" onclick="cerrarModal()">✖️</span>
-  <img id="imagenAmpliada" src="" alt="Vista ampliada">
-</div>
 
 
-
- <section id="movimientoScreen" class="hidden screen">
-  <h2>🔄 Registrar Movimiento</h2>
-
-  <form id="formMovimiento" onsubmit="registrarMovimientoDesdeFormulario(event)">
-    <label for="productoMovimiento">Producto:</label>
-    <input type="text" id="buscarProductoMovimiento" placeholder="Buscar producto por código, nombre o referencia">
-    <select id="productoMovimiento" required></select>
-
-   
-
-    <div style="margin: 10px 0;">
-      <img id="previewMovimiento" src="" alt="Foto producto" style="max-width: 150px; max-height: 150px;">
+    <div id="modalImagen" class="modal hidden">
+      <span class="cerrar-modal" onclick="cerrarModal()">✖️</span>
+      <img id="imagenAmpliada" src="" alt="Vista ampliada">
     </div>
 
-    <p>📦 Stock actual: <strong id="stockActual">--</strong></p>
-    <button type="button" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info Producto</button>
+    <!-- Pantalla Movimiento -->
+    <section id="movimientoScreen" class="screen hidden">
+      <h2>🔄 Registrar Movimiento</h2>
+      <form id="formMovimiento" onsubmit="registrarMovimientoDesdeFormulario(event)">
+        <label for="productoMovimiento">Producto:</label>
+        <input type="text" id="buscarProductoMovimiento" placeholder="Buscar producto por código, nombre o referencia">
+        <select id="productoMovimiento" required></select>
+        <img id="previewMovimiento" src="" alt="Foto producto" style="max-width: 150px; max-height: 150px; margin: 10px 0;">
+        <p>📦 Stock actual: <strong id="stockActual">--</strong></p>
+        <button type="button" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info Producto</button>
+        <label for="tipoMovimiento">Tipo:</label>
+        <select id="tipoMovimiento" required>
+          <option value="entrada">➕ Entrada</option>
+          <option value="salida">➖ Salida</option>
+        </select>
+        <label for="cantidadMovimiento">Cantidad:</label>
+        <input type="number" id="cantidadMovimiento" min="1" required>
+        <label for="notaMovimiento">Nota (opcional):</label>
+        <input type="text" id="notaMovimiento" placeholder="Proveedor, motivo, etc.">
+        <button type="submit">Registrar Movimiento</button>
+        <button type="button" onclick="cancelarOperacion()">Cancelar</button>
+      </form>
+    </section>
 
-
-    <label for="tipoMovimiento">Tipo:</label>
-    <select id="tipoMovimiento" required>
-      <option value="entrada">➕ Entrada</option>
-      <option value="salida">➖ Salida</option>
-    </select>
-
-    <label for="cantidadMovimiento">Cantidad:</label>
-    <input type="number" id="cantidadMovimiento" min="1" required>
-
-    <label for="notaMovimiento">Nota (opcional):</label>
-    <input type="text" id="notaMovimiento" placeholder="Proveedor, motivo, etc.">
-
-    <button type="submit">Registrar Movimiento</button>
-    <button type="button" onclick="cancelarOperacion()">Cancelar</button>
-  </form>
-</section>
-
-<section id="historialFiltradoScreen" class="screen hidden">
-  <h2>📋 Historial de Movimientos</h2>
-
-  <div>
-    <label>Tipo:
-      <select id="filtroTipo">
-        <option value="">Todos</option>
-        <option value="entrada">Entrada</option>
-        <option value="salida">Salida</option>
-      </select>
-    </label>
-
-    <label>Fecha:
-      <input type="date" id="filtroFecha">
-    </label>
-
-    <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
-    <button onclick="cancelarOperacion()">Cancelar</button>
-  </div>
-
-  <div id="resultadosFiltrados"></div>
-</section>
-
-
-
-  
+    <!-- Pantalla Historial Filtrado -->
+    <section id="historialFiltradoScreen" class="screen hidden">
+      <h2>📋 Historial de Movimientos</h2>
+      <div>
+        <label>Tipo:
+          <select id="filtroTipo">
+            <option value="">Todos</option>
+            <option value="entrada">Entrada</option>
+            <option value="salida">Salida</option>
+          </select>
+        </label>
+        <label>Fecha:
+          <input type="date" id="filtroFecha">
+        </label>
+        <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
+        <button onclick="cancelarOperacion()">Cancelar</button>
+      </div>
+      <div id="resultadosFiltrados"></div>
+    </section>
+  </main>
 
   <script src="app.js" defer></script>
   <script src="movimientos.js" defer></script>
   <script src="historial.js" defer></script>
-<script>
-  function previewImage(input, index) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById(`preview${index}`).src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-  
-  
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('✅ Service Worker registrado'))
-      .catch(err => console.error('❌ Error al registrar SW:', err));
-  }
-</script>
-
+  <script>
+    function previewImage(input, index) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById(`preview${index}`).src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('✅ Service Worker registrado'))
+        .catch(err => console.error('❌ Error al registrar SW:', err));
+    }
+  </script>
 </body>
 </html>
