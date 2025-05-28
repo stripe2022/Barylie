@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('precioCosto').addEventListener('input', calcularPrecioVenta);
   $('cantidad').addEventListener('input', calcularStock);
   $('cajas').addEventListener('input', calcularStock);
+  
 });
 
 // ===========================
@@ -41,6 +42,7 @@ function abrirDB() {
   request.onsuccess = function (e) {
     db = e.target.result;
     cargarCategorias();
+    mostrarTotalProductos();
   };
 
   request.onerror = function () {
@@ -676,6 +678,18 @@ function confirmarEliminar(codigo) {
     };
   }
 }
+
+function mostrarTotalProductos() {
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const req = store.getAll();
+
+  req.onsuccess = () => {
+    const productos = req.result || [];
+    document.getElementById('totalProductos').textContent = productos.length;
+  };
+}
+
 
 
 function mostrarImagenAmpliada(src) {

@@ -1,5 +1,14 @@
 // movimientos.js - Módulo para registrar y visualizar movimientos de stock
 
+/*function mostrarPantallaMovimientos() {
+  mostrarPantalla('movimiento');
+  cargarSelectorDeProductos();
+  document.getElementById('formMovimiento').reset();
+  document.getElementById('stockActual').textContent = '--';
+  document.getElementById('previewMovimiento')?.removeAttribute('src');
+  document.getElementById('buscarProductoMovimiento').value = '';
+}*/
+
 function mostrarPantallaMovimientos() {
   mostrarPantalla('movimiento');
   cargarSelectorDeProductos();
@@ -7,7 +16,11 @@ function mostrarPantallaMovimientos() {
   document.getElementById('stockActual').textContent = '--';
   document.getElementById('previewMovimiento')?.removeAttribute('src');
   document.getElementById('buscarProductoMovimiento').value = '';
+
+  // ✅ Mostrar total de productos al entrar
+  mostrarTotalProductos();
 }
+
 
 function cargarSelectorDeProductos() {
   const select = document.getElementById('productoMovimiento');

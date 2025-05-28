@@ -151,6 +151,8 @@
       <div id="popupMovimiento" class="popup hidden"></div>
       <form id="formMovimiento" onsubmit="registrarMovimientoDesdeFormulario(event)">
         <label for="productoMovimiento">Producto:</label>
+        <label>Total de productos: <strong id="totalProductos">--</strong></label>
+
         <input type="text" id="buscarProductoMovimiento" placeholder="Buscar producto por código, nombre o referencia">
         <select id="productoMovimiento" required></select>
         <img id="previewMovimiento" src="" alt="Foto producto" style="max-width: 150px; max-height: 150px; margin: 10px 0;">
