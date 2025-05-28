@@ -472,7 +472,11 @@ function importarBackup(event) {
         categoriasStore.put(cat);
       });
 
-      backup.productos?.forEach(prod => {
+      backup.productos?.forEach((prod, i) => {
+        // Asignar código automático si está vacío o null
+        if (!prod.codigo || !prod.codigo.trim()) {
+          prod.codigo = 'auto-' + Date.now() + '-' + i;
+        }
         productosStore.put(prod);
       });
 
