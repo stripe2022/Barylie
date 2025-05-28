@@ -97,6 +97,7 @@ function activarPantallaSearch() {
   $('resultados').innerHTML = '';
 
    mostrarTotalProductos(); 
+   cargarSelectorDeProductos();
 }
 
 function activarPantallaStock() {
