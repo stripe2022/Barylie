@@ -506,7 +506,7 @@ function confirmarImportacion(event) {
   fileInput.value = '';
 }
 
-
+/*
 
 function exportarBackup() {
   const tx = db.transaction(['productos', 'categorias', 'movimientos'], 'readonly');
@@ -543,61 +543,141 @@ function exportarBackup() {
     link.click();
     URL.revokeObjectURL(url);
   };
+}  */
+
+  async function exportarBackup() {
+  try {
+    const productos = await new Promise(resolve => {
+      const lista = [];
+      const tx = db.transaction('productos', 'readonly');
+      const store = tx.objectStore('productos');
+      const cursor = store.openCursor();
+
+      cursor.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur) {
+          const prod = cur.value;
+          if (!prod.codigo || prod.codigo.trim() === '') {
+            prod.codigo = 'P' + Date.now() + '-' + lista.length;
+          }
+          lista.push(prod);
+          cur.continue();
+        } else {
+          resolve(lista);
+        }
+      };
+
+      cursor.onerror = () => {
+        console.error('Error leyendo productos');
+        resolve([]);
+      };
+    });
+
+    const [categorias, movimientos] = await Promise.all([
+      new Promise(res => {
+        const tx = db.transaction('categorias', 'readonly');
+        tx.objectStore('categorias').getAll().onsuccess = e => res(e.target.result);
+      }),
+      new Promise(res => {
+        const tx = db.transaction('movimientos', 'readonly');
+        tx.objectStore('movimientos').getAll().onsuccess = e => res(e.target.result);
+      })
+    ]);
+
+    const backup = {
+      fecha: new Date().toISOString(),
+      productos,
+      categorias,
+      movimientos
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const fecha = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `backup-inventario-${fecha}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    alert('❌ Error al exportar los datos');
+    console.error(error);
+  }
 }
 
 
 
-function importarBackup(event, borrar = false) {
+async function importarBackup(event, borrar = false) {
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = () => {
+
+  reader.onload = async () => {
     try {
       const backup = JSON.parse(reader.result);
-      const tx = db.transaction(['productos', 'categorias', 'movimientos'], 'readwrite');
-      const productosStore = tx.objectStore('productos');
-      const categoriasStore = tx.objectStore('categorias');
-      const movimientosStore = tx.objectStore('movimientos');
+      const timestamp = Date.now();
+      const batchSize = 100;
 
-      // ✅ Solo si se elige borrar todo
       if (borrar) {
-        productosStore.clear();
-        categoriasStore.clear();
-        movimientosStore.clear();
+        const txClear = db.transaction(['productos', 'categorias', 'movimientos'], 'readwrite');
+        txClear.objectStore('productos').clear();
+        txClear.objectStore('categorias').clear();
+        txClear.objectStore('movimientos').clear();
+        await esperar(50);
       }
 
-      const timestamp = Date.now();
-
-      backup.categorias?.forEach(cat => {
-        categoriasStore.put(cat);
-      });
-
-      backup.productos?.forEach((prod, i) => {
-        if (!prod.codigo || !prod.codigo.trim()) {
-          prod.codigo = 'P' + timestamp + '-' + i;
+      // Categorías
+      if (Array.isArray(backup.categorias)) {
+        for (let i = 0; i < backup.categorias.length; i += batchSize) {
+          const tx = db.transaction('categorias', 'readwrite');
+          const store = tx.objectStore('categorias');
+          backup.categorias.slice(i, i + batchSize).forEach(cat => store.put(cat));
+          await esperar(10);
         }
-        productosStore.put(prod);
-      });
+      }
 
-      backup.movimientos?.forEach(mov => {
-        movimientosStore.put(mov);
-      });
+      // Productos
+      if (Array.isArray(backup.productos)) {
+        for (let i = 0; i < backup.productos.length; i += batchSize) {
+          const tx = db.transaction('productos', 'readwrite');
+          const store = tx.objectStore('productos');
+          backup.productos.slice(i, i + batchSize).forEach((prod, j) => {
+            if (!prod.codigo || !prod.codigo.trim()) {
+              prod.codigo = 'P' + timestamp + '-' + (i + j);
+            }
+            store.put(prod);
+          });
+          await esperar(10);
+        }
+      }
 
-      tx.oncomplete = () => {
-        alert('✅ Copia importada con éxito');
-        cargarCategorias();
-        mostrarTotalProductos(); // ✅ Añadir esto
-        if (typeof buscarProductos === 'function') buscarProductos();
-      };
+      // Movimientos
+      if (Array.isArray(backup.movimientos)) {
+        for (let i = 0; i < backup.movimientos.length; i += batchSize) {
+          const tx = db.transaction('movimientos', 'readwrite');
+          const store = tx.objectStore('movimientos');
+          backup.movimientos.slice(i, i + batchSize).forEach(mov => store.put(mov));
+          await esperar(10);
+        }
+      }
 
-      tx.onerror = () => alert('❌ Error al importar');
+      alert('✅ Copia importada con éxito');
+      cargarCategorias();
+      mostrarTotalProductos();
+      if (typeof buscarProductos === 'function') buscarProductos();
+
     } catch (err) {
-      alert('❌ Archivo inválido');
+      console.error(err);
+      alert('❌ Archivo inválido o error durante la importación');
     }
   };
 
   reader.readAsText(file);
+}
+
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 
