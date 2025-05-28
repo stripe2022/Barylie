@@ -89,25 +89,42 @@ function verInfoProductoSeleccionado() {
   const prod = window.productoSeleccionado;
   if (!prod) return alert('No hay producto seleccionado');
 
+  const icono = (etiqueta) => {
+    const iconos = {
+      código: '🔢',
+      referencia: '📄',
+      proveedor: '🏭',
+      categoría: '🏷️',
+      zona: '📍',
+      descripción: '📝',
+      stock: '📦',
+      precioOriginal: '💵',
+      tasa: '💱',
+      precioCosto: '💰',
+      precioVenta: '💸'
+    };
+    return iconos[etiqueta.toLowerCase()] || '';
+  };
+
   let html = `
-    <h3>${prod.nombre}</h3>
-    <p><strong>Código:</strong> ${prod.codigo}</p>
-    <p><strong>Referencia:</strong> ${prod.referencia}</p>
-    <p><strong>Proveedor:</strong> ${prod.proveedor}</p>
-    <p><strong>Categoría:</strong> ${prod.categoria}</p>
-    <p><strong>Zona:</strong> ${prod.zona}</p>
-    <p><strong>Descripción:</strong> ${prod.descripcion}</p>
-    <p><strong>Stock:</strong> ${prod.stock}</p>
-    <p><strong>Precio Original:</strong> ${prod.precioOriginal}</p>
-    <p><strong>Tasa:</strong> ${prod.tasa}</p>
-    <p><strong>Precio Costo:</strong> ${prod.precioCosto}</p>
-    <p><strong>Precio Venta:</strong> ${prod.precioVenta}</p>
+    <h3 style="margin-bottom: 10px; font-size: 1.4em; color: #333;">${prod.nombre}</h3>
+    <p><strong>${icono('código')} Código:</strong> ${prod.codigo}</p>
+    <p><strong>${icono('referencia')} Referencia:</strong> ${prod.referencia}</p>
+    <p><strong>${icono('proveedor')} Proveedor:</strong> ${prod.proveedor}</p>
+    <p><strong>${icono('categoría')} Categoría:</strong> ${prod.categoria}</p>
+    <p><strong>${icono('zona')} Zona:</strong> ${prod.zona}</p>
+    <p><strong>${icono('descripción')} Descripción:</strong> ${prod.descripcion}</p>
+    <p><strong>${icono('stock')} Stock:</strong> ${prod.stock}</p>
+    <p><strong>${icono('precioOriginal')} Precio Original:</strong> ${prod.precioOriginal}</p>
+    <p><strong>${icono('tasa')} Tasa:</strong> ${prod.tasa}</p>
+    <p><strong>${icono('precioCosto')} Precio Costo:</strong> ${prod.precioCosto}</p>
+    <p><strong>${icono('precioVenta')} Precio Venta:</strong> ${prod.precioVenta}</p>
   `;
 
   if (prod.fotoProducto) {
     const blob = new Blob([new Uint8Array(prod.fotoProducto)], { type: 'image/jpeg' });
     const url = URL.createObjectURL(blob);
-    html += `<img src="${url}" alt="Foto del producto" style="max-width: 200px; display: block; margin-top: 10px;">`;
+    html += `<img src="${url}" alt="Foto del producto" style="max-width: 100%; border-radius: 8px; margin-top: 10px;">`;
   }
 
   const modal = document.createElement('div');
@@ -125,13 +142,85 @@ function verInfoProductoSeleccionado() {
   const content = document.createElement('div');
   content.style.backgroundColor = '#fff';
   content.style.padding = '20px';
-  content.style.maxWidth = '400px';
-  content.style.borderRadius = '10px';
-  content.innerHTML = html + '<br><button onclick="this.parentNode.parentNode.remove()">Cerrar</button>';
+  content.style.maxWidth = '90vw';
+  content.style.maxHeight = '90vh';
+  content.style.overflowY = 'auto';
+  content.style.borderRadius = '12px';
+  content.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  content.style.fontSize = '1em';
+  content.innerHTML = html + '<br><button class="cancelar" style="margin-top: 15px;" onclick="this.parentNode.parentNode.remove()">✖️ Cerrar</button>';
 
   modal.appendChild(content);
   document.body.appendChild(modal);
 }
+
+
+function verInfoProducto(prod) {
+  const icono = (etiqueta) => {
+    const iconos = {
+      código: '🔢',
+      referencia: '📄',
+      proveedor: '🏭',
+      categoría: '🏷️',
+      zona: '📍',
+      descripción: '📝',
+      stock: '📦',
+      precioOriginal: '💵',
+      tasa: '💱',
+      precioCosto: '💰',
+      precioVenta: '💸'
+    };
+    return iconos[etiqueta.toLowerCase()] || '';
+  };
+
+  let html = `
+    <h3 style="margin-bottom: 10px; font-size: 1.4em; color: #333;">${prod.nombre}</h3>
+    <p><strong>${icono('código')} Código:</strong> ${prod.codigo}</p>
+    <p><strong>${icono('referencia')} Referencia:</strong> ${prod.referencia}</p>
+    <p><strong>${icono('proveedor')} Proveedor:</strong> ${prod.proveedor}</p>
+    <p><strong>${icono('categoría')} Categoría:</strong> ${prod.categoria}</p>
+    <p><strong>${icono('zona')} Zona:</strong> ${prod.zona}</p>
+    <p><strong>${icono('descripción')} Descripción:</strong> ${prod.descripcion}</p>
+    <p><strong>${icono('stock')} Stock:</strong> ${prod.stock}</p>
+    <p><strong>${icono('precioOriginal')} Precio Original:</strong> ${prod.precioOriginal}</p>
+    <p><strong>${icono('tasa')} Tasa:</strong> ${prod.tasa}</p>
+    <p><strong>${icono('precioCosto')} Precio Costo:</strong> ${prod.precioCosto}</p>
+    <p><strong>${icono('precioVenta')} Precio Venta:</strong> ${prod.precioVenta}</p>
+  `;
+
+  if (prod.fotoProducto) {
+    const blob = new Blob([new Uint8Array(prod.fotoProducto)], { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    html += `<img src="${url}" alt="Foto del producto" style="max-width: 100%; border-radius: 8px; margin-top: 10px;">`;
+  }
+
+  const modal = document.createElement('div');
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+  modal.style.display = 'flex';
+  modal.style.justifyContent = 'center';
+  modal.style.alignItems = 'center';
+  modal.style.zIndex = '9999';
+
+  const content = document.createElement('div');
+  content.style.backgroundColor = '#fff';
+  content.style.padding = '20px';
+  content.style.maxWidth = '90vw';
+  content.style.maxHeight = '90vh';
+  content.style.overflowY = 'auto';
+  content.style.borderRadius = '12px';
+  content.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  content.style.fontSize = '1em';
+  content.innerHTML = html + '<br><button class="cancelar" style="margin-top: 15px;" onclick="this.parentNode.parentNode.remove()">✖️ Cerrar</button>';
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+}
+
 
 function registrarMovimientoDesdeFormulario(e) {
   e.preventDefault();

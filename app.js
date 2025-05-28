@@ -364,6 +364,13 @@ function renderizarResultados(resultados) {
     btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
     acciones.appendChild(btnEliminar);
 
+    const btnInfo = document.createElement('button');
+    btnInfo.textContent = 'ℹ️ Info';
+    btnInfo.classList.add('info-btn');
+    btnInfo.onclick = () => verInfoProducto(prod);
+    acciones.appendChild(btnInfo);
+
+
     tarjeta.appendChild(imgContainer);
     tarjeta.appendChild(info);
     tarjeta.appendChild(acciones);
