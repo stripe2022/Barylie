@@ -79,16 +79,16 @@ function guardarProducto(e) {
   e.preventDefault();
 
   Promise.all([
-  capturarFoto(1),
-  capturarFoto(2)
-]).then(([fotoProducto, fotoEmbalaje]) => {
+    capturarFoto(1),
+    capturarFoto(2)
+  ]).then(([fotoProducto, fotoEmbalaje]) => {
     const producto = {
       codigo: $('codigo').value.trim(),
       referencia: $('referencia').value.trim(),
       nombre: $('nombre').value.trim(),
       proveedor: $('proveedor').value.trim(),
       categoria: $('categoria').value,
-      zona: $('zona').value.trim(), // ✅ Campo agregado aquí
+      zona: $('zona').value.trim(),
       descripcion: $('descripcion').value.trim(),
       cantidad: parseInt($('cantidad').value) || 0,
       cajas: parseInt($('cajas').value) || 0,
@@ -100,26 +100,34 @@ function guardarProducto(e) {
       fotoProducto,
       fotoEmbalaje
     };
-    
 
-  const esEdicion = $('productIndex').value;
+    const esEdicion = $('productIndex').value;
 
     const tx = db.transaction('productos', 'readwrite');
     tx.objectStore('productos').put(producto);
     tx.oncomplete = () => {
-      console.log('✅ Producto guardado, ocultando formulario...');
+      console.log('✅ Producto guardado');
+
       alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
-      
-      $('productIndex').value = '';
-      $('addScreen').classList.add('hidden');  // Oculta el formulario
-      $('nav').classList.remove('hidden');     // Muestra los botones principales
-     
       resetForm();
+
+      if (esEdicion) {
+        $('addScreen').classList.add('hidden');
+        $('searchScreen').classList.remove('hidden');
+        if (typeof buscarProductos === 'function') buscarProductos();
+        $('buscarInput')?.focus(); // Opcional: enfoca el buscador
+      } else {
+        $('addScreen').classList.add('hidden');
+        $('nav').classList.remove('hidden');
+      }
+
+      $('productIndex').value = ''; // Limpia marcador de edición
     };
 
     tx.onerror = () => alert('Error al guardar el producto');
   });
 }
+
 
 function resetForm() {
   
@@ -148,11 +156,23 @@ function resetForm() {
 }
 
 function cancelarOperacion() {
+  const esEdicion = $('productIndex').value;
+
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $('nav').classList.remove('hidden');
-  $('productForm')?.reset(); // Opcional: limpia los campos si estás en el formulario
-  $('tituloFormulario').textContent = 'Añadir Producto';
+
+  if (esEdicion) {
+    // Volver a búsqueda
+    $('searchScreen').classList.remove('hidden');
+    $('tituloFormulario').textContent = 'Añadir Producto';
+    $('productForm')?.reset();
+    $('productIndex').value = '';
+  } else {
+    // Volver al menú principal
+    $('nav').classList.remove('hidden');
+    $('productForm')?.reset();
+  }
 }
+
 
 function cancelarBusqueda() {
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
@@ -166,6 +186,7 @@ function cancelarStock() {
   $('buscarStock').value = '';
   $('stockResultado').innerHTML = '';
 }
+
 
 
 function cargarCategorias() {
