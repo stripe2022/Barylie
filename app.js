@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // ✅ Registrar Service Worker y mostrar alerta cuando esté listo offline
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Barylie/service-worker.js')
+    navigator.serviceWorker.register('sw.js')
       .then(() => console.log('✅ Service Worker registrado'))
       .catch(err => console.error('❌ Error al registrar SW:', err));
 
