@@ -20,6 +20,37 @@ function mostrarPantallaMovimientos() {
   // ✅ Mostrar total de productos al entrar
   mostrarTotalProductos();
 }
+function cargarSelectorBusqueda() {
+  const select = document.getElementById('selectorBusqueda');
+  if (!select) return;
+
+  select.innerHTML = ''; // Limpia opciones
+
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const req = store.getAll();
+
+  req.onsuccess = () => {
+    const productos = req.result;
+    const blanco = document.createElement('option');
+    blanco.value = '';
+    blanco.textContent = '-- Selecciona un producto --';
+    select.appendChild(blanco);
+
+    productos.forEach(prod => {
+      const opt = document.createElement('option');
+      opt.value = prod.codigo;
+      opt.textContent = `${prod.codigo} - ${prod.nombre}`;
+      select.appendChild(opt);
+    });
+
+    // Puedes asignar una acción cuando se seleccione un producto:
+    select.onchange = () => {
+      const codigo = select.value;
+      if (codigo) verInfoProductoDesdeBusqueda(codigo);
+    };
+  };
+}
 
 
 function cargarSelectorDeProductos() {
