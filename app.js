@@ -62,6 +62,8 @@ function activarPantallaSearch() {
   $('searchScreen').classList.remove('hidden');
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';
+
+   mostrarTotalProductos(); 
 }
 
 function activarPantallaStock() {
@@ -69,6 +71,8 @@ function activarPantallaStock() {
   $('stockScreen').classList.remove('hidden');
   $('buscarStock').value = '';
   $('stockResultado').innerHTML = '';
+
+   mostrarTotalProductos(); 
 }
 
 function ocultarTodasLasPantallas() {
