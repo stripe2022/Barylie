@@ -22,7 +22,40 @@ document.addEventListener('DOMContentLoaded', () => {
   $('cantidad').addEventListener('input', calcularStock);
   $('cajas').addEventListener('input', calcularStock);
   
+  // ✅ Registrar Service Worker y mostrar alerta cuando esté listo offline
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Barylie/service-worker.js')
+      .then(() => console.log('✅ Service Worker registrado'))
+      .catch(err => console.error('❌ Error al registrar SW:', err));
+
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.tipo === 'offline-listo') {
+        mostrarBanner('✅ App lista para funcionar sin conexión', '#4caf50');
+      }
+      if (event.data?.tipo === 'offline-error') {
+        mostrarBanner('❌ Error al cachear archivos: ' + event.data.mensaje, '#f44336');
+      }
+    });
+  }
 });
+
+// ✅ Muestra un banner informativo en la parte inferior
+function mostrarBanner(texto, bgColor = '#333') {
+  const banner = document.createElement('div');
+  banner.textContent = texto;
+  banner.style.position = 'fixed';
+  banner.style.bottom = '20px';
+  banner.style.left = '50%';
+  banner.style.transform = 'translateX(-50%)';
+  banner.style.backgroundColor = bgColor;
+  banner.style.color = '#fff';
+  banner.style.padding = '12px 24px';
+  banner.style.borderRadius = '8px';
+  banner.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+  banner.style.zIndex = '9999';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
 
 // ===========================
 // INDEXEDDB
@@ -648,6 +681,38 @@ function mostrarPopupMovimiento(texto, tipo = 'exito') {
   setTimeout(() => {
     popup.classList.remove('show');
   }, 3500);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/Barylie/service-worker.js')
+    .then(() => console.log('✅ Service Worker registrado'))
+    .catch(err => console.error('❌ Error al registrar el Service Worker:', err));
+
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data?.tipo === 'offline-listo') {
+      mostrarBanner('✅ App lista para funcionar sin conexión', '#4caf50');
+    }
+    if (event.data?.tipo === 'offline-error') {
+      mostrarBanner('❌ Error al cachear archivos: ' + event.data.mensaje, '#f44336');
+    }
+  });
+}
+
+function mostrarBanner(texto, bgColor = '#333') {
+  const banner = document.createElement('div');
+  banner.textContent = texto;
+  banner.style.position = 'fixed';
+  banner.style.bottom = '20px';
+  banner.style.left = '50%';
+  banner.style.transform = 'translateX(-50%)';
+  banner.style.backgroundColor = bgColor;
+  banner.style.color = '#fff';
+  banner.style.padding = '12px 24px';
+  banner.style.borderRadius = '8px';
+  banner.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+  banner.style.zIndex = '9999';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
 }
 
 

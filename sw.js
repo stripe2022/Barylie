@@ -11,14 +11,33 @@ const ASSETS = [
   '/Barylie/icons/icon-512.png'
 ];
 
-// Instala y guarda archivos en cache
+// INSTALACIÓN: Intenta cachear todos los archivos
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS)
+        .then(() => {
+          self.skipWaiting();
+        })
+        .then(() => {
+          return self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
+              client.postMessage({ tipo: 'offline-listo' });
+            });
+          });
+        })
+        .catch(err => {
+          return self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
+              client.postMessage({ tipo: 'offline-error', mensaje: err.message });
+            });
+          });
+        });
+    })
   );
 });
 
-// Activa y limpia caches antiguos
+// ACTIVACIÓN
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -29,9 +48,17 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Intercepta fetch y responde desde cache (offline)
+// FETCH: Intenta servir desde caché y luego desde red
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
+    caches.match(e.request).then(res => {
+      if (res) return res;
+
+      return fetch(e.request).catch(() => {
+        return new Response('<h1>⚠️ Sin conexión y recurso no disponible offline</h1>', {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      });
+    })
   );
 });
