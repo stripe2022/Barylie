@@ -95,18 +95,12 @@ function cargarSelectorDeProductos() {
 
   req.onsuccess = () => {
     const productos = req.result;
-    renderizarOpcionesSelector(productos);
 
-    buscador.oninput = () => {
-      const query = buscador.value.toLowerCase();
-      const filtrados = productos.filter(p =>
-        p.codigo.toLowerCase().includes(query) ||
-        p.nombre.toLowerCase().includes(query) ||
-        (p.referencia?.toLowerCase() || '').includes(query)
-      );
-      renderizarOpcionesSelector(filtrados);
-    };
+    // ✅ Esto ya incluye filtrado si buscador existe
+    renderizarOpcionesSelector(productos, select, buscador);
 
+    // ✅ Asignar cambio de selección
     select.onchange = mostrarDatosProducto;
   };
 }
+

@@ -95,8 +95,8 @@ function activarPantallaSearch() {
   $('searchScreen').classList.remove('hidden');
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';
-
-   mostrarTotalProductos(); 
+  cargarSelectorBusqueda(); 
+  mostrarTotalProductos(); 
 }
 
 function activarPantallaStock() {

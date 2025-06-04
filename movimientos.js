@@ -1,13 +1,6 @@
 // movimientos.js - Módulo para registrar y visualizar movimientos de stock
 
-/*function mostrarPantallaMovimientos() {
-  mostrarPantalla('movimiento');
-  cargarSelectorDeProductos();
-  document.getElementById('formMovimiento').reset();
-  document.getElementById('stockActual').textContent = '--';
-  document.getElementById('previewMovimiento')?.removeAttribute('src');
-  document.getElementById('buscarProductoMovimiento').value = '';
-}*/
+
 
 function mostrarPantallaMovimientos() {
   mostrarPantalla('movimiento');
@@ -39,8 +32,11 @@ function cargarSelectorDeProductos() {
 
   req.onsuccess = () => {
     const productos = req.result;
-    renderizarOpcionesSelector(productos);
 
+    // ✅ Usa la nueva función general pasando select y buscador
+    renderizarOpcionesSelector(productos, select, buscador);
+
+    // ✅ También puedes aplicar filtro directo si lo prefieres
     buscador.oninput = () => {
       const query = buscador.value.toLowerCase();
       const filtrados = productos.filter(p =>
@@ -48,27 +44,15 @@ function cargarSelectorDeProductos() {
         p.nombre.toLowerCase().includes(query) ||
         (p.referencia?.toLowerCase() || '').includes(query)
       );
-      renderizarOpcionesSelector(filtrados);
+      renderizarOpcionesSelector(filtrados, select);
     };
 
+    // ✅ Al cambiar de producto, mostrar datos
     select.onchange = mostrarDatosProducto;
   };
 }
 
-function renderizarOpcionesSelector(productos) {
-  const select = document.getElementById('productoMovimiento');
-  // Mantener primera opción en blanco
-  const primera = select.firstElementChild;
-  select.innerHTML = '';
-  if (primera) select.appendChild(primera);
 
-  productos.forEach(prod => {
-    const opt = document.createElement('option');
-    opt.value = prod.codigo;
-    opt.textContent = `${prod.codigo} - ${prod.nombre}`;
-    select.appendChild(opt);
-  });
-}
 
 function mostrarDatosProducto() {
   const codigo = document.getElementById('productoMovimiento').value;
@@ -325,4 +309,65 @@ function mostrarPantalla(id) {
   document.querySelectorAll(".screen").forEach(sec => sec.classList.add("hidden"));
   document.getElementById("nav")?.classList.add("hidden");
   document.getElementById(id + "Screen")?.classList.remove("hidden");
+}
+
+function productoDesdeBusquedaSeleccionado() {
+  const select = document.getElementById('selectorBusqueda');
+  const id = select.value;
+  if (!id) return;
+
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const req = store.get(id);
+
+  req.onsuccess = () => {
+    const producto = req.result;
+    if (producto) {
+      window.productoSeleccionado = producto;
+      // Opcional: mostrar automáticamente el modal
+      // verInfoProductoSeleccionado();
+    }
+  };
+}
+function cargarSelectorBusqueda() {
+  const select = document.getElementById('selectorBusqueda');
+  if (!select) return;
+  select.innerHTML = '';
+
+  const blanco = document.createElement('option');
+  blanco.value = '';
+  blanco.textContent = '-- Selecciona un producto --';
+  select.appendChild(blanco);
+
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const req = store.getAll();
+
+  req.onsuccess = () => {
+    const productos = req.result;
+    renderizarOpcionesSelector(productos, select);
+  };
+}
+function renderizarOpcionesSelector(productos, selectElement, buscador = null) {
+  if (!selectElement) return;
+
+  const primera = selectElement.firstElementChild;
+  selectElement.innerHTML = '';
+  if (primera) selectElement.appendChild(primera);
+
+  productos.forEach(prod => {
+    const opt = document.createElement('option');
+    opt.value = prod.codigo;
+    opt.textContent = `${prod.codigo} - ${prod.nombre}`;
+    selectElement.appendChild(opt);
+  });
+
+  if (buscador) {
+    buscador.addEventListener('input', () => {
+      const texto = buscador.value.toLowerCase();
+      Array.from(selectElement.options).forEach(opt => {
+        opt.hidden = !opt.textContent.toLowerCase().includes(texto);
+      });
+    });
+  }
 }
