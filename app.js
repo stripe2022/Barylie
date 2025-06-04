@@ -506,44 +506,7 @@ function confirmarImportacion(event) {
   fileInput.value = '';
 }
 
-/*
 
-function exportarBackup() {
-  const tx = db.transaction(['productos', 'categorias', 'movimientos'], 'readonly');
-  const productosStore = tx.objectStore('productos');
-  const categoriasStore = tx.objectStore('categorias');
-  const movimientosStore = tx.objectStore('movimientos');
-
-  const productosReq = productosStore.getAll();
-  const categoriasReq = categoriasStore.getAll();
-  const movimientosReq = movimientosStore.getAll();
-
-  tx.oncomplete = () => {
-    // ⚙️ Generar código automático si falta
-    const productos = productosReq.result.map(prod => {
-      if (!prod.codigo || prod.codigo.trim() === '') {
-        prod.codigo = 'P' + Date.now() + Math.floor(Math.random() * 10000);
-      }
-      return prod;
-    });
-
-    const backup = {
-      fecha: new Date().toISOString(),
-      productos: productos,
-      categorias: categoriasReq.result,
-      movimientos: movimientosReq.result
-    };
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const fecha = new Date().toISOString().split('T')[0];
-    link.href = url;
-    link.download = `backup-inventario-${fecha}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-}  */
 
   async function exportarBackup() {
   try {
@@ -598,7 +561,7 @@ function exportarBackup() {
     link.href = url;
     link.download = `backup-inventario-${fecha}.json`;
     link.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   } catch (error) {
     alert('❌ Error al exportar los datos');
     console.error(error);
@@ -616,6 +579,13 @@ async function importarBackup(event, borrar = false) {
   reader.onload = async () => {
     try {
       const backup = JSON.parse(reader.result);
+      console.log(`📥 Archivo importado: ${file.name}`);
+
+      // Validación básica del contenido
+      if (!backup || typeof backup !== 'object') {
+        throw new Error("❌ El archivo no contiene un respaldo válido.");
+      }
+
       const timestamp = Date.now();
       const batchSize = 100;
 
@@ -632,7 +602,9 @@ async function importarBackup(event, borrar = false) {
         for (let i = 0; i < backup.categorias.length; i += batchSize) {
           const tx = db.transaction('categorias', 'readwrite');
           const store = tx.objectStore('categorias');
-          backup.categorias.slice(i, i + batchSize).forEach(cat => store.put(cat));
+          backup.categorias.slice(i, i + batchSize).forEach(cat => {
+            if (cat && cat.nombre) store.put(cat);
+          });
           await esperar(10);
         }
       }
@@ -643,10 +615,11 @@ async function importarBackup(event, borrar = false) {
           const tx = db.transaction('productos', 'readwrite');
           const store = tx.objectStore('productos');
           backup.productos.slice(i, i + batchSize).forEach((prod, j) => {
+            if (!prod || typeof prod !== 'object') return;
             if (!prod.codigo || !prod.codigo.trim()) {
               prod.codigo = 'P' + timestamp + '-' + (i + j);
             }
-            store.put(prod);
+            if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
           });
           await esperar(10);
         }
@@ -657,7 +630,9 @@ async function importarBackup(event, borrar = false) {
         for (let i = 0; i < backup.movimientos.length; i += batchSize) {
           const tx = db.transaction('movimientos', 'readwrite');
           const store = tx.objectStore('movimientos');
-          backup.movimientos.slice(i, i + batchSize).forEach(mov => store.put(mov));
+          backup.movimientos.slice(i, i + batchSize).forEach(mov => {
+            if (mov && mov.tipo && mov.cantidad) store.put(mov);
+          });
           await esperar(10);
         }
       }
@@ -675,6 +650,7 @@ async function importarBackup(event, borrar = false) {
 
   reader.readAsText(file);
 }
+
 
 function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
