@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="/Barylie/manifest.json" />
+  <link rel="stylesheet" href="/Barylie/style.css" />
   <title>Inventario Almacén PWA</title>
 </head>
 <body>
@@ -201,10 +201,10 @@
   <div id="popupMovimiento" class="popup hidden"></div>
   
 
-
-  <script src="app.js" defer></script>
-  <script src="movimientos.js" defer></script>
-  <script src="historial.js" defer></script>
+<script src="/Barylie/app.js" defer></script>
+<script src="/Barylie/movimientos.js" defer></script>
+<script src="/Barylie/historial.js" defer></script>
+  
   <script>
     function previewImage(input, index) {
       const file = input.files[0];
@@ -217,5 +217,27 @@
     }
    
   </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Barylie/sw.js', { scope: '/Barylie/' })
+      .then(reg => {
+        console.log('SW registrado', reg);
+
+        reg.onupdatefound = () => {
+          const nuevoSW = reg.installing;
+          nuevoSW.onstatechange = () => {
+            if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
+              alert("🔁 Nueva versión disponible. Recargando...");
+              location.reload();
+            }
+          };
+        };
+      })
+      .catch(err => {
+        console.error('Error al registrar SW:', err);
+      });
+  }
+</script>
+
 </body>
 </html>
