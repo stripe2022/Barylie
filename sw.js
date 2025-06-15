@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barylie-cache-v1';
+const CACHE_NAME = 'barylie-cache-v2'; // Recuerda subir la versión al actualizar
 const ASSETS = [
   '/Barylie/',
   '/Barylie/index.html',
@@ -11,50 +11,51 @@ const ASSETS = [
   '/Barylie/icons/icon-512.png'
 ];
 
-// INSTALACIÓN: Intenta cachear todos los archivos
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS)
-        .then(() => {
-          self.skipWaiting();
-        })
-        .then(() => {
-          return self.clients.matchAll().then(clients => {
-            clients.forEach(client => {
-              client.postMessage({ tipo: 'offline-listo' });
-            });
-          });
-        })
-        .catch(err => {
-          return self.clients.matchAll().then(clients => {
-            clients.forEach(client => {
-              client.postMessage({ tipo: 'offline-error', mensaje: err.message });
-            });
+// INSTALACIÓN
+self.addEventListener('install', event => {
+  self.skipWaiting(); // Forzar activación inmediata
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache =>
+      cache.addAll(ASSETS).catch(err => {
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ tipo: 'offline-error', mensaje: err.message });
           });
         });
-    })
-  );
-});
-
-// ACTIVACIÓN
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      )
+      })
     )
   );
 });
 
-// FETCH: Intenta servir desde caché y luego desde red
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(res => {
-      if (res) return res;
+// ACTIVACIÓN
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim(); // Tomar control inmediato
+});
 
-      return fetch(e.request).catch(() => {
+// FETCH
+self.addEventListener('fetch', event => {
+  const req = event.request;
+
+  // Si es una navegación (recarga, abrir app), devolver index.html del caché
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/Barylie/index.html')
+    );
+    return;
+  }
+
+  // Para otros recursos (CSS, JS, imágenes, etc.)
+  event.respondWith(
+    caches.match(req).then(res => {
+      return res || fetch(req).catch(() => {
+        // Si falla y no está en cache, mensaje simple
         return new Response('<h1>⚠️ Sin conexión y recurso no disponible offline</h1>', {
           headers: { 'Content-Type': 'text/html' }
         });
