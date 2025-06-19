@@ -61,27 +61,50 @@ function mostrarBanner(texto, bgColor = '#333') {
 // INDEXEDDB
 // ===========================
 function abrirDB() {
-  const request = indexedDB.open('inventarioDB', 2);
+  const request = indexedDB.open('inventarioDB', 3); // Versión incrementada
 
   request.onupgradeneeded = function (e) {
     const db = e.target.result;
-    const store = db.createObjectStore('productos', { keyPath: 'codigo' });
-    store.createIndex('nombre', 'nombre', { unique: false });
-    db.createObjectStore('categorias', { keyPath: 'nombre' });
-    db.createObjectStore('movimientos', { keyPath: 'id', autoIncrement: true });
+    // Borra el objectStore si ya existe (solo al migrar)
+    if (db.objectStoreNames.contains('productos')) db.deleteObjectStore('productos');
+    const store = db.createObjectStore('productos', { keyPath: 'id' }); // Clave UUID oculta
+    store.createIndex('codigo', 'codigo', { unique: true });  // Índice único para código
+    store.createIndex('nombre', 'nombre', { unique: false }); // Índice para búsquedas por nombre
 
+    if (!db.objectStoreNames.contains('categorias'))
+      db.createObjectStore('categorias', { keyPath: 'nombre' });
+
+    if (db.objectStoreNames.contains('movimientos')) db.deleteObjectStore('movimientos');
+    db.createObjectStore('movimientos', { keyPath: 'id' }); // Usando UUID para movimientos también
   };
 
   request.onsuccess = function (e) {
     db = e.target.result;
     cargarCategorias();
     mostrarTotalProductos();
+     migrarProductosSinUUID();
+    
   };
 
   request.onerror = function () {
     console.error('Error al abrir la base de datos');
   };
 }
+
+function migrarProductosSinUUID() {
+  const tx = db.transaction('productos', 'readwrite');
+  const store = tx.objectStore('productos');
+  const req = store.getAll();
+  req.onsuccess = () => {
+    req.result.forEach(prod => {
+      if (!prod.id) {
+        prod.id = crypto.randomUUID();
+        store.put(prod);
+      }
+    });
+  };
+}
+
 
 function activarPantallaAdd() {
   ocultarTodasLasPantallas();
@@ -121,7 +144,12 @@ function guardarProducto(e) {
     capturarFoto(1),
     capturarFoto(2)
   ]).then(([fotoProducto, fotoEmbalaje]) => {
+
+    // 1. Recupera el id oculto si es edición, si no, genera uno nuevo
+    let id = $('productId')?.value || crypto.randomUUID();
+
     const producto = {
+      id, // <-- ¡Clave UUID oculta!
       codigo: $('codigo').value.trim(),
       referencia: $('referencia').value.trim(),
       nombre: $('nombre').value.trim(),
@@ -140,7 +168,7 @@ function guardarProducto(e) {
       fotoEmbalaje
     };
 
-    const esEdicion = $('productIndex').value;
+    const esEdicion = $('productId').value;
 
     const tx = db.transaction('productos', 'readwrite');
     tx.objectStore('productos').put(producto);
@@ -162,7 +190,8 @@ function guardarProducto(e) {
         $('nav').classList.remove('hidden');
       }
 
-      $('productIndex').value = ''; // Limpia marcador de edición
+      $('productId').value = ''; // Limpia el id oculto para el siguiente producto nuevo
+
     };
 
     tx.onerror = () => alert('Error al guardar el producto');
@@ -189,7 +218,7 @@ function resetForm() {
   });
 
   // Limpiar el campo oculto de edición
-  $('productIndex').value = '';
+  $('productId').value = '';
 
   
 
@@ -197,7 +226,7 @@ function resetForm() {
 }
 
 function cancelarOperacion() {
-  const esEdicion = $('productIndex').value;
+  const esEdicion = $('productId').value;
 
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
 
@@ -206,7 +235,7 @@ function cancelarOperacion() {
     $('searchScreen').classList.remove('hidden');
     $('tituloFormulario').textContent = 'Añadir Producto';
     $('productForm')?.reset();
-    $('productIndex').value = '';
+    $('productId').value = '';
   } else {
     // Volver al menú principal
     $('nav').classList.remove('hidden');
@@ -428,8 +457,9 @@ function renderizarResultados(resultados) {
 function editarProducto(codigo) {
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
-  const request = store.get(codigo);
-
+  const idx = store.index('codigo'); // <-- CORRECTO, índice por código
+  const request = idx.get(codigo);   // <-- Ahora sí busca por código
+  
   request.onsuccess = function () {
     const producto = request.result;
     if (!producto) {
@@ -458,6 +488,7 @@ function editarProducto(codigo) {
     $('precioCosto').value = producto.precioCosto;
     $('precioVenta').value = producto.precioVenta;
     $('stock').value = producto.stock;
+    $('productId').value = producto.id; // <-- UUID oculto para edición
 
     // Mostrar imágenes si existen
     if (producto.fotoProducto) {
@@ -470,7 +501,8 @@ function editarProducto(codigo) {
     }
 
     // Guardar código en un input hidden para saber si se está editando
-    $('productIndex').value = producto.codigo;
+    $('productId').value = producto.id;
+
   };
 }
 
@@ -520,6 +552,9 @@ function confirmarImportacion(event) {
         const cur = e.target.result;
         if (cur) {
           const prod = cur.value;
+           if (!prod.id) {
+            prod.id = crypto.randomUUID(); // <-- Lo importante
+          }
           if (!prod.codigo || prod.codigo.trim() === '') {
             prod.codigo = 'P' + Date.now() + '-' + lista.length;
           }
@@ -616,6 +651,10 @@ async function importarBackup(event, borrar = false) {
           const store = tx.objectStore('productos');
           backup.productos.slice(i, i + batchSize).forEach((prod, j) => {
             if (!prod || typeof prod !== 'object') return;
+              if (!prod.id) {
+                  prod.id = crypto.randomUUID();
+      }
+
             if (!prod.codigo || !prod.codigo.trim()) {
               prod.codigo = 'P' + timestamp + '-' + (i + j);
             }
@@ -631,8 +670,12 @@ async function importarBackup(event, borrar = false) {
           const tx = db.transaction('movimientos', 'readwrite');
           const store = tx.objectStore('movimientos');
           backup.movimientos.slice(i, i + batchSize).forEach(mov => {
-            if (mov && mov.tipo && mov.cantidad) store.put(mov);
-          });
+            if (!mov || typeof mov !== 'object') return; 
+           if (mov.tipo && mov.cantidad) {
+    if (!mov.id) mov.id = crypto.randomUUID();
+    store.put(mov);
+  }
+});
           await esperar(10);
         }
       }
@@ -685,23 +728,33 @@ function capturarFoto(index) {
 }
 
 function confirmarEliminar(codigo) {
-  if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
-    const tx = db.transaction('productos', 'readwrite');
-    const store = tx.objectStore('productos');
-    store.delete(codigo);
+  const tx = db.transaction('productos', 'readonly');
+  const store = tx.objectStore('productos');
+  const idx = store.index('codigo');
+  const req = idx.get(codigo);
 
-    tx.oncomplete = () => {
-      alert("Producto eliminado: " + codigo);
-      buscarProductos(); // Actualiza la lista después de eliminar
-      mostrarTotalProductos();
+  req.onsuccess = function () {
+    const producto = req.result;
+    if (!producto) {
+      alert('Producto no encontrado');
+      return;
+    }
 
-    };
-
-    tx.onerror = () => {
-      alert("Ocurrió un error al intentar eliminar el producto.");
-    };
-  }
+    if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
+      const tx2 = db.transaction('productos', 'readwrite');
+      tx2.objectStore('productos').delete(producto.id); // Ahora borra por id (UUID)
+      tx2.oncomplete = () => {
+        alert("Producto eliminado: " + codigo);
+        buscarProductos();
+        mostrarTotalProductos();
+      };
+      tx2.onerror = () => {
+        alert("Ocurrió un error al intentar eliminar el producto.");
+      };
+    }
+  };
 }
+
 
 function mostrarTotalProductos() {
   const tx = db.transaction('productos', 'readonly');
