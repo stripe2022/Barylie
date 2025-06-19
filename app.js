@@ -204,12 +204,13 @@ function guardarProducto(e) {
 
 
 function resetForm() {
-  
-  // Limpiar formulario
+  // Limpiar el formulario (si existe)
   $('productForm')?.reset();
 
-  // Restaurar el título
-  $('tituloFormulario').textContent = 'Añadir Producto';
+  // Restaurar el título solo si el elemento existe
+  if ($('tituloFormulario')) {
+    $('tituloFormulario').textContent = 'Añadir Producto';
+  }
 
   // Limpiar miniaturas de imagen
   document.querySelectorAll('img[id^="preview"]').forEach(img => {
@@ -221,13 +222,12 @@ function resetForm() {
     input.value = '';
   });
 
-  // Limpiar el campo oculto de edición
-  $('productId').value = '';
-
-  
-
-  
+  // Limpiar el campo oculto de edición, si existe
+  if ($('productId')) {
+    $('productId').value = '';
+  }
 }
+
 
 function cancelarOperacion() {
   const esEdicion = $('productId').value;
@@ -429,13 +429,13 @@ function renderizarResultados(resultados) {
     const btnEditar = document.createElement('button');
     btnEditar.textContent = '✏️ Editar';
     btnEditar.classList.add('editar-btn'); // Estilo
-    btnEditar.onclick = () => editarProducto(prod.codigo);
+    btnEditar.onclick = () => editarProducto(prod.id);
     acciones.appendChild(btnEditar);
 
     const btnEliminar = document.createElement('button');
     btnEliminar.textContent = '🗑️';
      btnEliminar.classList.add('eliminar-btn'); // Estilo
-    btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
+    btnEliminar.onclick = () => confirmarEliminar(prod.id);
     acciones.appendChild(btnEliminar);
 
     const btnInfo = document.createElement('button');
@@ -458,11 +458,10 @@ function renderizarResultados(resultados) {
   // ===========================
 // FUNCIÓN PARA EDITAR PRODUCTO
 // ===========================
-function editarProducto(codigo) {
+function editarProducto(id) {
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
-  const idx = store.index('codigo'); // <-- CORRECTO, índice por código
-  const request = idx.get(codigo);   // <-- Ahora sí busca por código
+  const request = store.get(id); // <--- Ahora busca por id (UUID)
   
   request.onsuccess = function () {
     const producto = request.result;
@@ -471,11 +470,8 @@ function editarProducto(codigo) {
       return;
     }
 
-    // Mostrar pantalla de edición
-    
     mostrarPantallaAddSinReset();
     $('tituloFormulario').textContent = 'Editar Producto';
-
 
     // Llenar campos del formulario
     $('codigo').value = producto.codigo;
@@ -494,7 +490,6 @@ function editarProducto(codigo) {
     $('stock').value = producto.stock;
     $('productId').value = producto.id; // <-- UUID oculto para edición
 
-    // Mostrar imágenes si existen
     if (producto.fotoProducto) {
       const blob1 = new Blob([new Uint8Array(producto.fotoProducto)], { type: 'image/jpeg' });
       $('preview1').src = URL.createObjectURL(blob1);
@@ -503,10 +498,6 @@ function editarProducto(codigo) {
       const blob2 = new Blob([new Uint8Array(producto.fotoEmbalaje)], { type: 'image/jpeg' });
       $('preview2').src = URL.createObjectURL(blob2);
     }
-
-    // Guardar código en un input hidden para saber si se está editando
-    $('productId').value = producto.id;
-
   };
 }
 
