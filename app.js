@@ -13,6 +13,14 @@ const $ = id => document.getElementById(id);
 // ===========================
 document.addEventListener('DOMContentLoaded', () => {
   abrirDB();
+  document.getElementById('btnActualizarAlmacen').addEventListener('click', async () => {
+  document.getElementById('btnActualizarAlmacen').disabled = true;
+  document.getElementById('btnActualizarAlmacen').textContent = '🔄 Sincronizando...';
+  await sincronizarTodo();
+  document.getElementById('btnActualizarAlmacen').disabled = false;
+  document.getElementById('btnActualizarAlmacen').textContent = '📦 Actualizar Almacén';
+});
+
   $('productForm').addEventListener('submit', guardarProducto);
 
   // Listeners para cálculo automático de precioCosto, precioVenta y stock
