@@ -169,7 +169,8 @@ function guardarProducto(e) {
       precioVenta: parseFloat($('precioVenta').value) || 0,
       stock: parseInt($('stock').value) || 0,
       fotoProducto,
-      fotoEmbalaje
+      fotoEmbalaje,
+      updated_at: new Date().toISOString()   // 👈 AGREGA ESTA LÍNEA AQUÍ
     };
 
     const esEdicion = $('productId').value;
