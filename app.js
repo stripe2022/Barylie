@@ -82,7 +82,8 @@ function abrirDB() {
     db = e.target.result;
     cargarCategorias();
     mostrarTotalProductos();
-     migrarProductosSinUUID();
+    migrarProductosSinUUID();
+    migrarProductosSinUpdatedAt(); 
     
   };
 
@@ -99,6 +100,20 @@ function migrarProductosSinUUID() {
     req.result.forEach(prod => {
       if (!prod.id) {
         prod.id = crypto.randomUUID();
+        store.put(prod);
+      }
+    });
+  };
+}
+
+function migrarProductosSinUpdatedAt() {
+  const tx = db.transaction('productos', 'readwrite');
+  const store = tx.objectStore('productos');
+  const req = store.getAll();
+  req.onsuccess = () => {
+    req.result.forEach(prod => {
+      if (!prod.updated_at) {
+        prod.updated_at = new Date().toISOString();
         store.put(prod);
       }
     });
