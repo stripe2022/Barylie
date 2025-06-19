@@ -139,6 +139,10 @@ function ocultarTodasLasPantallas() {
 
 function guardarProducto(e) {
   e.preventDefault();
+     if (!$('codigo').value.trim() || !$('nombre').value.trim()) {
+  alert('El código y el nombre son obligatorios.');
+  return;
+}
 
   Promise.all([
     capturarFoto(1),
