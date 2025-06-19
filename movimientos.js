@@ -63,7 +63,7 @@ function mostrarDatosProducto() {
   }
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
-  const req = store.get(codigo);
+  const req = store.get(id); // Aquí el value es el id (UUID)
 
   req.onsuccess = () => {
     const prod = req.result;
@@ -222,20 +222,20 @@ function verInfoProducto(prod) {
 function registrarMovimientoDesdeFormulario(e) {
   e.preventDefault();
 
-  const codigo = document.getElementById('productoMovimiento').value;
+  const productoId = document.getElementById('productoMovimiento').value; // <-- El value es el id
   const tipo = document.getElementById('tipoMovimiento').value;
   const cantidad = parseInt(document.getElementById('cantidadMovimiento').value);
   const nota = document.getElementById('notaMovimiento').value.trim();
   const usuario = JSON.parse(localStorage.getItem('usuarioActivo'))?.nombre || 'Desconocido';
 
-  if (!codigo || isNaN(cantidad) || cantidad <= 0) {
+  if (!productoId || isNaN(cantidad) || cantidad <= 0) {
     mostrarPopupMovimiento('❌ Ingresa una cantidad válida.', 'error');
     return;
   }
 
   const tx = db.transaction('productos', 'readwrite');
   const store = tx.objectStore('productos');
-  const req = store.get(codigo);
+  const req = store.get(productoId); // <-- Busca por id
 
   req.onsuccess = () => {
     const producto = req.result;
@@ -254,7 +254,9 @@ function registrarMovimientoDesdeFormulario(e) {
     store.put(producto);
 
     const movimiento = {
+      producto_id: producto.id,          // <-- Importante: id único
       codigo: producto.codigo,
+      nombre: producto.nombre,
       tipo,
       cantidad,
       nota,
@@ -295,7 +297,7 @@ function verHistorial() {
       div.className = 'movimiento';
       div.innerHTML = `
         <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-        <p>Producto: ${mov.codigo} | Cantidad: ${mov.cantidad}</p>
+        <p>Producto: ${mov.codigo || ''} - ${mov.nombre || ''} | Cantidad: ${mov.cantidad}</p>
         <p>Usuario: ${mov.usuario}</p>
         <p>Nota: ${mov.nota}</p>
         <hr>
