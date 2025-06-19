@@ -357,7 +357,7 @@ function renderizarOpcionesSelector(productos, selectElement, buscador = null) {
 
   productos.forEach(prod => {
     const opt = document.createElement('option');
-    opt.value = prod.codigo;
+    opt.value = prod.id; // <-- Usa el UUID, no el código
     opt.textContent = `${prod.codigo} - ${prod.nombre}`;
     selectElement.appendChild(opt);
   });

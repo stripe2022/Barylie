@@ -32,12 +32,13 @@ function cargarHistorialFiltrado() {
       const div = document.createElement('div');
       div.className = 'movimiento';
       div.innerHTML = `
-        <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-        <p>Producto: ${mov.codigo} | Cantidad: ${mov.cantidad}</p>
-        <p>Usuario: ${mov.usuario}</p>
-        <p>Nota: ${mov.nota}</p>
-        <hr>
-      `;
+  <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
+  <p>Producto: ${mov.codigo} - ${mov.nombre || ''} | Cantidad: ${mov.cantidad}</p>
+  <p>Usuario: ${mov.usuario}</p>
+  <p>Nota: ${mov.nota}</p>
+  <hr>
+`;
+
       contenedor.appendChild(div);
     });
   };
@@ -69,7 +70,7 @@ function aplicarFiltroHistorial() {
       div.className = 'movimiento';
       div.innerHTML = `
         <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-        <p>Producto: ${mov.codigo} | Cantidad: ${mov.cantidad}</p>
+        <p>Producto: ${mov.codigo} - ${mov.nombre || ''} | Cantidad: ${mov.cantidad}</p>
         <p>Usuario: ${mov.usuario}</p>
         <p>Nota: ${mov.nota}</p>
         <hr>
@@ -89,6 +90,9 @@ function cargarSelectorDeProductos() {
   blanco.textContent = '-- Selecciona un producto --';
   select.appendChild(blanco);
 
+  // (opcional) Limpia el input del buscador cada vez que entras
+  if (buscador) buscador.value = '';
+  
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
   const req = store.getAll();
