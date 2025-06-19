@@ -261,7 +261,9 @@ function registrarMovimientoDesdeFormulario(e) {
       cantidad,
       nota,
       usuario,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      created_at: new Date().toISOString(),  // 👈 CAMPO DE FECHA
+  subido: false // Opcional, para flag de sincronización
     };
 
     const tx2 = db.transaction('movimientos', 'readwrite');
