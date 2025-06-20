@@ -172,9 +172,14 @@ function guardarProducto(e) {
     capturarFoto(2)
   ]).then(([fotoProducto, fotoEmbalaje]) => {
 
-    // 1. Recupera el id oculto si es edición, si no, genera uno nuevo
-    let id = $('productId')?.value || crypto.randomUUID();
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+   // Recupera el id oculto si es edición, si no, genera uno nuevo
+    let id = $('productId')?.value?.trim();
+    if (!id || !uuidRegex.test(id)) {
+      id = crypto.randomUUID(); // Genera uno nuevo si no es válido
+    }
+    
     const producto = {
       id, // <-- ¡Clave UUID oculta!
       codigo: $('codigo').value.trim(),
