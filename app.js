@@ -663,13 +663,13 @@ async function importarBackup(event, borrar = false) {
       const backup = JSON.parse(reader.result);
       console.log(`📥 Archivo importado: ${file.name}`);
 
-      // Validación básica del contenido
       if (!backup || typeof backup !== 'object') {
         throw new Error("❌ El archivo no contiene un respaldo válido.");
       }
 
       const timestamp = Date.now();
       const batchSize = 100;
+      const idMap = {}; // ← Mapa de id viejo → UUID nuevo
 
       if (borrar) {
         const txClear = db.transaction(['productos', 'categorias', 'movimientos'], 'readwrite');
@@ -691,38 +691,48 @@ async function importarBackup(event, borrar = false) {
         }
       }
 
-      // Productos
+      // Productos con generación de UUID y mapeo
       if (Array.isArray(backup.productos)) {
         for (let i = 0; i < backup.productos.length; i += batchSize) {
           const tx = db.transaction('productos', 'readwrite');
           const store = tx.objectStore('productos');
           backup.productos.slice(i, i + batchSize).forEach((prod, j) => {
             if (!prod || typeof prod !== 'object') return;
-              if (!prod.id) {
-                  prod.id = crypto.randomUUID();
-      }
+
+            const oldId = prod.id;
+            if (!prod.id || !/^[0-9a-f-]{36}$/i.test(prod.id)) {
+              prod.id = crypto.randomUUID(); // generar nuevo id
+            }
+            idMap[oldId] = prod.id; // mapeo de id original al nuevo UUID
 
             if (!prod.codigo || !prod.codigo.trim()) {
               prod.codigo = 'P' + timestamp + '-' + (i + j);
             }
+
             if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
           });
           await esperar(10);
         }
       }
 
-      // Movimientos
+      // Movimientos con re-asignación de producto_id
       if (Array.isArray(backup.movimientos)) {
         for (let i = 0; i < backup.movimientos.length; i += batchSize) {
           const tx = db.transaction('movimientos', 'readwrite');
           const store = tx.objectStore('movimientos');
           backup.movimientos.slice(i, i + batchSize).forEach(mov => {
-            if (!mov || typeof mov !== 'object') return; 
-           if (mov.tipo && mov.cantidad) {
-    if (!mov.id) mov.id = crypto.randomUUID();
-    store.put(mov);
-  }
-});
+            if (!mov || typeof mov !== 'object') return;
+
+            if (!mov.id) mov.id = crypto.randomUUID();
+
+            if (mov.producto_id && idMap[mov.producto_id]) {
+              mov.producto_id = idMap[mov.producto_id]; // asigna el nuevo ID UUID
+            }
+
+            if (mov.tipo && mov.cantidad) {
+              store.put(mov);
+            }
+          });
           await esperar(10);
         }
       }
@@ -740,7 +750,6 @@ async function importarBackup(event, borrar = false) {
 
   reader.readAsText(file);
 }
-
 
 function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
