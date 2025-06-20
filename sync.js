@@ -92,7 +92,7 @@ async function subirProductosIndexedDBaSupabase() {
     }
   }
 
-  alert('✅ Sincronización de productos finalizada. Revisa consola.');
+  alert('✅ Sincronización de productos finalizada.');
 }
 
 
