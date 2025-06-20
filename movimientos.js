@@ -254,6 +254,7 @@ function registrarMovimientoDesdeFormulario(e) {
     store.put(producto);
 
     const movimiento = {
+      id: crypto.randomUUID(), // 👈 Esto es lo que faltaba
       producto_id: producto.id,          // <-- Importante: id único
       codigo: producto.codigo,
       nombre: producto.nombre,
