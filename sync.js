@@ -19,70 +19,75 @@ async function subirProductosIndexedDBaSupabase() {
     req.onerror = () => resolve([]);
   });
 
-  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id`, {
+  // 🔍 Traer también código y nombre para comparación
+  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,codigo,nombre`, {
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`
     }
   });
-  const idsEnSupabase = (await resExistentes.json()).map(p => p.id);
+  const productosEnSupabase = await resExistentes.json();
 
   for (const prod of productosLocales) {
-  if (prod.subido) continue;
-
-  // ✅ Asigna ID si no lo tiene y GUARDA inmediatamente en IndexedDB
-  if (!prod.id) {
-    prod.id = crypto.randomUUID();
-
-    const tx = db.transaction('productos', 'readwrite');
-    tx.objectStore('productos').put(prod);  // <<-- IMPORTANTE: guardar el ID asignado
-  }
-
-  // ✅ No subir si ya está en Supabase
-  if (idsEnSupabase.includes(prod.id)) continue;
-
-  if (!prod.updated_at) prod.updated_at = new Date().toISOString();
-
-  const prodSupabase = {
-    id: prod.id,
-    nombre: prod.nombre,
-    precio_costo: prod.precioCosto,
-    precio_venta: prod.precioVenta,
-    stock: prod.stock,
-    updated_at: prod.updated_at
-  };
-
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify([prodSupabase])
-    });
-
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      data = null;
+    // ✅ Asegurar ID
+    if (!prod.id) {
+      prod.id = crypto.randomUUID();
+      const tx = db.transaction('productos', 'readwrite');
+      tx.objectStore('productos').put(prod);
     }
 
-    if (!res.ok) throw new Error(JSON.stringify(data));
+    // ✅ Validar duplicados por ID, código o nombre
+    const yaExiste = productosEnSupabase.some(p =>
+      p.id === prod.id || p.codigo === prod.codigo || p.nombre === prod.nombre
+    );
+    if (yaExiste) continue;
 
-    prod.subido = true;
-    const tx = db.transaction('productos', 'readwrite');
-    tx.objectStore('productos').put(prod);
+    if (!prod.updated_at) prod.updated_at = new Date().toISOString();
 
-    console.log(`✅ Producto ${prod.nombre} sincronizado.`);
-  } catch (err) {
-    console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
+    const prodSupabase = {
+      id: prod.id,
+      codigo: prod.codigo || '',
+      nombre: prod.nombre,
+      precio_costo: prod.precioCosto,
+      precio_venta: prod.precioVenta,
+      stock: prod.stock,
+      updated_at: prod.updated_at
+    };
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify([prodSupabase])
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+
+      if (!res.ok) throw new Error(JSON.stringify(data));
+
+      prod.subido = true;
+      const tx = db.transaction('productos', 'readwrite');
+      tx.objectStore('productos').put(prod);
+
+      console.log(`✅ Producto ${prod.nombre} sincronizado.`);
+    } catch (err) {
+      console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
+    }
   }
+
+  alert('✅ Sincronización de productos completada.');
 }
-}
+
 
 // === SUBIR MOVIMIENTOS DESDE INDEXEDDB A SUPABASE ===
 async function subirMovimientosIndexedDBaSupabase() {
