@@ -107,13 +107,18 @@ async function subirMovimientosIndexedDBaSupabase() {
   const idsMovsEnSupabase = (await resMovsExistentes.json()).map(m => m.id);
 
   for (const mov of movimientosLocales) {
-    if (!mov.id) continue;
-    if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
+    if (!mov.id) mov.id = crypto.randomUUID();
+  if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
+
+  if (!mov.producto_id) {
+    console.warn(`⚠️ Movimiento sin producto_id: ${mov.id}`);
+    continue;
+  }
 
     // ✅ Verificar si el producto fue importado (si usas esa lógica)
     const producto = await obtenerProductoPorId(db, mov.producto_id);
     if (producto?.source === 'import') {
-      console.log(`⏩ Movimiento ignorado (producto importado): ${mov.id}`);
+      console.warn(`⏩ Movimiento ignorado (producto importado): ${mov.id}`);
       continue;
     }
 
