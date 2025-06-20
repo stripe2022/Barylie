@@ -650,6 +650,20 @@ function confirmarImportacion(event) {
   }
 }
 
+function esperarBaseDeDatos() {
+  return new Promise((resolve, reject) => {
+    let intentos = 0;
+    const intervalo = setInterval(() => {
+      if (db) {
+        clearInterval(intervalo);
+        resolve();
+      } else if (intentos++ > 30) { // espera máx. 3 segundos
+        clearInterval(intervalo);
+        reject("❌ No se pudo abrir la base de datos.");
+      }
+    }, 100);
+  });
+}
 
 
 async function importarBackup(event, borrar = false) {
@@ -658,9 +672,15 @@ async function importarBackup(event, borrar = false) {
 
   const reader = new FileReader();
 
-  reader.onload = async () => {
-    try {
-      const backup = JSON.parse(reader.result);
+ reader.onload = async () => {
+  try {
+    if (!db) {
+      await esperarBaseDeDatos(); // ⬅️ Esperar si aún no está lista
+    }
+
+    const backup = JSON.parse(reader.result);
+    // ...
+
       console.log(`📥 Archivo importado: ${file.name}`);
 
       if (!backup || typeof backup !== 'object') {
@@ -703,6 +723,7 @@ async function importarBackup(event, borrar = false) {
             if (!prod.id || !/^[0-9a-f-]{36}$/i.test(prod.id)) {
               prod.id = crypto.randomUUID(); // generar nuevo id
             }
+            prod.source = 'import'; 
             idMap[oldId] = prod.id; // mapeo de id original al nuevo UUID
 
             if (!prod.codigo || !prod.codigo.trim()) {
