@@ -63,7 +63,7 @@ function mostrarDatosProducto() {
   }
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
-  const req = store.get(id); // Aquí el value es el id (UUID)
+  const req = store.get(codigo); // Aquí el value es el id (UUID)
 
   req.onsuccess = () => {
     const prod = req.result;
@@ -352,6 +352,7 @@ function cargarSelectorBusqueda() {
     renderizarOpcionesSelector(productos, select);
   };
 }
+
 function renderizarOpcionesSelector(productos, selectElement, buscador = null) {
   if (!selectElement) return;
 
