@@ -254,8 +254,11 @@ function registrarMovimientoDesdeFormulario(e) {
   if (tipo === 'salida' && producto.stock < cantidad) {
     if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
       return;
-    }
-  }
+    };
+  };
+}
+  
+  
 
   producto.stock += tipo === 'entrada' ? cantidad : -cantidad;
   store.put(producto);
@@ -384,3 +387,4 @@ function renderizarOpcionesSelector(productos, selectElement, buscador = null) {
     });
   }
 }
+
