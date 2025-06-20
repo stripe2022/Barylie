@@ -4,61 +4,58 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // === SUBIR PRODUCTOS ===
 async function subirProductosIndexedDBaSupabase() {
-  const db = await abrirIndexedDB();
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('inventarioDB');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject('No se pudo abrir IndexedDB');
+  });
 
-  const productosLocales = await obtenerTodosDeIndexedDB(db, 'productos');
+  const productosLocales = await new Promise(resolve => {
+    const tx = db.transaction('productos', 'readonly');
+    const store = tx.objectStore('productos');
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
 
-  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id`, {
+  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,codigo,nombre`, {
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`
     }
   });
 
-  
-  let productosEnSupabase = await resExistentes.json();
-
-  
-
-try {
-  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`
-    }
-  });
-
-  const data = await resExistentes.json();
-
-  if (!Array.isArray(data)) {
-    console.error('❌ Supabase respondió con algo inesperado:', data);
-    throw new Error('Respuesta no válida de Supabase al obtener productos');
+  let productosEnSupabase = [];
+  try {
+    productosEnSupabase = await resExistentes.json();
+  } catch (e) {
+    console.error('❌ Supabase respondió con algo inesperado:', e);
+    alert('❌ Error al obtener productos desde Supabase');
+    return;
   }
 
-  productosEnSupabase = data;
-} catch (error) {
-  console.error('❌ Error al obtener productos de Supabase:', error);
-  return; // Detener la función para evitar errores mayores
-}
-
+  const idsEnSupabase = productosEnSupabase.map(p => p.id);
 
   for (const prod of productosLocales) {
-    if (!prod.id) {
-      prod.id = crypto.randomUUID();
-      const tx = db.transaction('productos', 'readwrite');
-      tx.objectStore('productos').put(prod);
+    // ⚠️ Validar ID
+    if (!prod.id || !/^[0-9a-f-]{36}$/.test(prod.id)) {
+      console.warn(`🚫 Producto ignorado por ID inválido:`, prod);
+      continue;
     }
 
     const yaExiste = productosEnSupabase.some(p =>
-      p.id === prod.id || p.codigo === prod.codigo || p.nombre === prod.nombre
-    );
-    if (yaExiste) continue;
+    p.codigo === prod.codigo || p.nombre === prod.nombre
+  );
+  if (yaExiste) {
+    console.log(`⚠️ Producto duplicado por código o nombre: ${prod.nombre}`);
+    continue;
+  }
 
+    if (prod.subido || idsEnSupabase.includes(prod.id)) continue;
     if (!prod.updated_at) prod.updated_at = new Date().toISOString();
 
     const prodSupabase = {
       id: prod.id,
-      codigo: prod.codigo || '',
       nombre: prod.nombre,
       precio_costo: prod.precioCosto,
       precio_venta: prod.precioVenta,
@@ -78,7 +75,12 @@ try {
         body: JSON.stringify([prodSupabase])
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {}
+
+      if (!res.ok) throw new Error(JSON.stringify(data));
 
       prod.subido = true;
       const tx = db.transaction('productos', 'readwrite');
@@ -90,8 +92,9 @@ try {
     }
   }
 
-  alert('✅ Sincronización de productos completada.');
+  alert('✅ Sincronización de productos finalizada. Revisa consola.');
 }
+
 
 // === SUBIR MOVIMIENTOS ===
 async function subirMovimientosIndexedDBaSupabase() {
