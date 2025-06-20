@@ -28,53 +28,61 @@ async function subirProductosIndexedDBaSupabase() {
   const idsEnSupabase = (await resExistentes.json()).map(p => p.id);
 
   for (const prod of productosLocales) {
-    if (prod.subido || idsEnSupabase.includes(prod.id)) continue;
+  if (prod.subido) continue;
 
-    if (!prod.id) prod.id = crypto.randomUUID();
-    if (!prod.updated_at) prod.updated_at = new Date().toISOString();
+  // ✅ Asigna ID si no lo tiene y GUARDA inmediatamente en IndexedDB
+  if (!prod.id) {
+    prod.id = crypto.randomUUID();
 
-    const prodSupabase = {
-      id: prod.id,
-      nombre: prod.nombre,
-      precio_costo: prod.precioCosto,
-      precio_venta: prod.precioVenta,
-      stock: prod.stock,
-      updated_at: prod.updated_at
-    };
-
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: JSON.stringify([prodSupabase])
-      });
-
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        data = null;
-      }
-
-      if (!res.ok) throw new Error(JSON.stringify(data));
-
-      prod.subido = true;
-      const tx = db.transaction('productos', 'readwrite');
-      tx.objectStore('productos').put(prod);
-
-      console.log(`✅ Producto ${prod.nombre} sincronizado.`);
-    } catch (err) {
-      console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
-    }
+    const tx = db.transaction('productos', 'readwrite');
+    tx.objectStore('productos').put(prod);  // <<-- IMPORTANTE: guardar el ID asignado
   }
 
-  alert('✅ Sincronización de productos finalizada. Revisa consola.');
+  // ✅ No subir si ya está en Supabase
+  if (idsEnSupabase.includes(prod.id)) continue;
+
+  if (!prod.updated_at) prod.updated_at = new Date().toISOString();
+
+  const prodSupabase = {
+    id: prod.id,
+    nombre: prod.nombre,
+    precio_costo: prod.precioCosto,
+    precio_venta: prod.precioVenta,
+    stock: prod.stock,
+    updated_at: prod.updated_at
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([prodSupabase])
+    });
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (!res.ok) throw new Error(JSON.stringify(data));
+
+    prod.subido = true;
+    const tx = db.transaction('productos', 'readwrite');
+    tx.objectStore('productos').put(prod);
+
+    console.log(`✅ Producto ${prod.nombre} sincronizado.`);
+  } catch (err) {
+    console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
+  }
 }
+
 
 // === SUBIR MOVIMIENTOS DESDE INDEXEDDB A SUPABASE ===
 async function subirMovimientosIndexedDBaSupabase() {
