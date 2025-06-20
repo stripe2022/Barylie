@@ -14,7 +14,32 @@ async function subirProductosIndexedDBaSupabase() {
       'Authorization': `Bearer ${SUPABASE_KEY}`
     }
   });
+
+  
   const productosEnSupabase = await resExistentes.json();
+  
+
+try {
+  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,codigo,nombre`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    }
+  });
+
+  const data = await resExistentes.json();
+
+  if (!Array.isArray(data)) {
+    console.error('❌ Supabase respondió con algo inesperado:', data);
+    throw new Error('Respuesta no válida de Supabase al obtener productos');
+  }
+
+  productosEnSupabase = data;
+} catch (error) {
+  console.error('❌ Error al obtener productos de Supabase:', error);
+  return; // Detener la función para evitar errores mayores
+}
+
 
   for (const prod of productosLocales) {
     if (!prod.id) {
