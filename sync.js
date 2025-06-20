@@ -16,7 +16,8 @@ async function subirProductosIndexedDBaSupabase() {
   });
 
   
-  const productosEnSupabase = await resExistentes.json();
+  let productosEnSupabase = await resExistentes.json();
+
   
 
 try {
