@@ -5,15 +5,28 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // Helper básico para fetch a Supabase REST
 async function supabaseFetch(endpoint, options = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `${SUPABASE_URL}/rest/v1/${endpoint}`;
+
+  const config = {
     headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
       ...options.headers
     },
     ...options
-  }).then(r => r.json());
+  };
+
+  const response = await fetch(url, config);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Supabase error ${response.status}: ${errorText}`);
+  }
+
+  return response.json();
 }
 
 // ===== 1. SUBIR PRODUCTOS NUEVOS/MODIFICADOS =====
