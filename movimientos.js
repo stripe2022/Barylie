@@ -238,51 +238,58 @@ function registrarMovimientoDesdeFormulario(e) {
   const req = store.get(productoId); // <-- Busca por id
 
   req.onsuccess = () => {
-    const producto = req.result;
-    if (!producto) {
-      mostrarPopupMovimiento('❌ Producto no encontrado.', 'error');
+  const producto = req.result;
+  if (!producto) {
+    mostrarPopupMovimiento('❌ Producto no encontrado.', 'error');
+    return;
+  }
+
+  // ✅ Validar si producto.id es UUID válido
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(producto.id)) {
+    mostrarPopupMovimiento('❌ El producto no tiene un ID válido.', 'error');
+    return;
+  }
+
+  if (tipo === 'salida' && producto.stock < cantidad) {
+    if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
       return;
     }
+  }
 
-    if (tipo === 'salida' && producto.stock < cantidad) {
-      if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
-        return;
-      }
-    }
+  producto.stock += tipo === 'entrada' ? cantidad : -cantidad;
+  store.put(producto);
 
-    producto.stock += tipo === 'entrada' ? cantidad : -cantidad;
-    store.put(producto);
-
-    const movimiento = {
-      id: crypto.randomUUID(), // 👈 Esto es lo que faltaba
-      producto_id: producto.id,          // <-- Importante: id único
-      codigo: producto.codigo,
-      nombre: producto.nombre,
-      tipo,
-      cantidad,
-      nota,
-      usuario,
-      fecha: new Date().toISOString(),
-      created_at: new Date().toISOString(),  // 👈 CAMPO DE FECHA
-  subido: false // Opcional, para flag de sincronización
-    };
-
-    const tx2 = db.transaction('movimientos', 'readwrite');
-    tx2.objectStore('movimientos').add(movimiento);
-
-    tx2.oncomplete = () => {
-      const mensaje = `✅ Has ${tipo === 'entrada' ? 'añadido' : 'retirado'} ${cantidad} unidades.\n📦 Total actual: ${producto.stock}`;
-      mostrarPopupMovimiento(mensaje, 'exito');
-
-      // Reset del formulario
-      document.getElementById('formMovimiento').reset();
-      document.getElementById('stockActual').textContent = '--';
-      document.getElementById('previewMovimiento')?.removeAttribute('src');
-      document.getElementById('productoMovimiento').selectedIndex = 0;
-      window.productoSeleccionado = null;
-    };
+  const movimiento = {
+    id: crypto.randomUUID(),
+    producto_id: producto.id,         // 👈 Asegurado que sea UUID válido
+    codigo: producto.codigo,
+    nombre: producto.nombre,
+    tipo,
+    cantidad,
+    nota,
+    usuario,
+    fecha: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    subido: false
   };
-}
+
+  const tx2 = db.transaction('movimientos', 'readwrite');
+  tx2.objectStore('movimientos').add(movimiento);
+
+  tx2.oncomplete = () => {
+    const mensaje = `✅ Has ${tipo === 'entrada' ? 'añadido' : 'retirado'} ${cantidad} unidades.\n📦 Total actual: ${producto.stock}`;
+    mostrarPopupMovimiento(mensaje, 'exito');
+
+    // Reset del formulario
+    document.getElementById('formMovimiento').reset();
+    document.getElementById('stockActual').textContent = '--';
+    document.getElementById('previewMovimiento')?.removeAttribute('src');
+    document.getElementById('productoMovimiento').selectedIndex = 0;
+    window.productoSeleccionado = null;
+  };
+};
+
 
 
 function verHistorial() {
