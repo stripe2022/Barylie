@@ -250,13 +250,14 @@ function registrarMovimientoDesdeFormulario(e) {
     mostrarPopupMovimiento('❌ El producto no tiene un ID válido.', 'error');
     return;
   }
+}
 
   if (tipo === 'salida' && producto.stock < cantidad) {
     if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
       return;
     };
   };
-}
+
   
   
 
