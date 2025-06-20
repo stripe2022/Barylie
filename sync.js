@@ -8,7 +8,7 @@ async function subirProductosIndexedDBaSupabase() {
 
   const productosLocales = await obtenerTodosDeIndexedDB(db, 'productos');
 
-  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,codigo,nombre`, {
+  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id`, {
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`
