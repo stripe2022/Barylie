@@ -100,19 +100,42 @@ function abrirDB() {
   };
 }
 
+
+function esUUID(val) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(val);
+}
+
 function migrarProductosSinUUID() {
   const tx = db.transaction('productos', 'readwrite');
   const store = tx.objectStore('productos');
-  const req = store.getAll();
-  req.onsuccess = () => {
-    req.result.forEach(prod => {
-      if (!prod.id) {
-        prod.id = crypto.randomUUID();
-        store.put(prod);
+
+  store.getAll().onsuccess = (e) => {
+    const productos = e.target.result;
+    productos.forEach(producto => {
+      if (!esUUID(producto.id)) {
+        const nuevoId = crypto.randomUUID();
+        const productoNuevo = { ...producto, id: nuevoId };
+        store.delete(producto.id);
+        store.put(productoNuevo);
+        actualizarMovimientosConNuevoProductoId(producto.id, nuevoId);
       }
     });
   };
 }
+
+function actualizarMovimientosConNuevoProductoId(idViejo, idNuevo) {
+  const tx = db.transaction('movimientos', 'readwrite');
+  const store = tx.objectStore('movimientos');
+  store.getAll().onsuccess = (e) => {
+    e.target.result.forEach(m => {
+      if (m.producto_id === idViejo) {
+        m.producto_id = idNuevo;
+        store.put(m);
+      }
+    });
+  };
+}
+
 
 function migrarProductosSinUpdatedAt() {
   const tx = db.transaction('productos', 'readwrite');
@@ -179,7 +202,7 @@ function guardarProducto(e) {
     if (!id || !uuidRegex.test(id)) {
       id = crypto.randomUUID(); // Genera uno nuevo si no es válido
     }
-    
+
     const producto = {
       id, // <-- ¡Clave UUID oculta!
       codigo: $('codigo').value.trim(),
