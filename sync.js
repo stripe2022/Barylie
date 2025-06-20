@@ -82,7 +82,7 @@ async function subirProductosIndexedDBaSupabase() {
     console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
   }
 }
-
+}
 
 // === SUBIR MOVIMIENTOS DESDE INDEXEDDB A SUPABASE ===
 async function subirMovimientosIndexedDBaSupabase() {
