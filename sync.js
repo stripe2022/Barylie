@@ -109,12 +109,13 @@ async function subirMovimientosIndexedDBaSupabase() {
 
   for (const mov of movimientosLocales) {
     if (!mov.id) mov.id = crypto.randomUUID();
-  if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
-
-  if (!mov.producto_id) {
-    console.warn(`⚠️ Movimiento sin producto_id: ${mov.id}`);
+    if (!mov.producto_id || typeof mov.producto_id !== 'string' || mov.producto_id.length < 20) {
+    console.warn(`⚠️ Movimiento sin producto_id válido: ${mov.id}`);
     continue;
   }
+  if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
+
+ 
 
     // ✅ Verificar si el producto fue importado (si usas esa lógica)
     const producto = await obtenerProductoPorId(db, mov.producto_id);
