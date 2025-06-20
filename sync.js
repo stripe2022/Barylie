@@ -105,10 +105,14 @@ async function subirMovimientosIndexedDBaSupabase() {
     if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
 
     const movToSend = {
-      ...mov,
-      cantidad: parseFloat(mov.cantidad || 1),
-      created_at: mov.created_at || new Date().toISOString()
-    };
+  id: mov.id,  // ID del movimiento
+  producto_id: mov.producto_id,  // ID del producto relacionado
+  tipo: mov.tipo,
+  cantidad: parseFloat(mov.cantidad || 1),
+  nota: mov.nota,
+  created_at: mov.created_at || new Date().toISOString()
+};
+
 
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/stock_movements`, {
