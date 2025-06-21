@@ -196,3 +196,16 @@ async function subirProductosIndexedDBaSupabase() {
 
   alert('✅ Sincronización de productos finalizada. Revisa consola.');
 }
+
+async function sincronizarTodo() {
+  try {
+    console.log('🔄 Iniciando sincronización...');
+    await subirProductosIndexedDBaSupabase();
+    await subirMovimientosIndexedDBaSupabase();
+    console.log('✅ Sincronización completada.');
+  } catch (error) {
+    console.error('❌ Error general durante la sincronización:', error);
+    alert('❌ Error durante la sincronización. Revisa consola.');
+  }
+}
+
