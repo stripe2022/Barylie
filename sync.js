@@ -97,47 +97,75 @@ async function subirProductosIndexedDBaSupabase() {
 
 
 // === SUBIR MOVIMIENTOS ===
-async function subirMovimientosIndexedDBaSupabase() {
-  const db = await abrirIndexedDB();
+async function subirProductosIndexedDBaSupabase() {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('inventarioDB');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject('No se pudo abrir IndexedDB');
+  });
 
-  const movimientosLocales = await obtenerTodosDeIndexedDB(db, 'movimientos');
+  // 1️⃣ Leer productos locales
+  const productosLocales = await new Promise(resolve => {
+    const tx = db.transaction('productos', 'readonly');
+    const store = tx.objectStore('productos');
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
 
-  const resMovsExistentes = await fetch(`${SUPABASE_URL}/rest/v1/stock_movements?select=id`, {
+  // 2️⃣ Leer productos existentes en Supabase (con campos necesarios para comparación)
+  const resExistentes = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,codigo,nombre`, {
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`
     }
   });
-  const idsMovsEnSupabase = (await resMovsExistentes.json()).map(m => m.id);
 
-  for (const mov of movimientosLocales) {
-    if (!mov.id) mov.id = crypto.randomUUID();
-    if (!mov.producto_id || typeof mov.producto_id !== 'string' || mov.producto_id.length < 20) {
-    console.warn(`⚠️ Movimiento sin producto_id válido: ${mov.id}`);
-    continue;
+  let productosEnSupabase = [];
+  try {
+    productosEnSupabase = await resExistentes.json();
+  } catch (e) {
+    console.error('❌ Supabase respondió con algo inesperado:', e);
+    alert('❌ Error al obtener productos desde Supabase');
+    return;
   }
-  if (mov.subido || idsMovsEnSupabase.includes(mov.id)) continue;
 
- 
+  const idsEnSupabase = productosEnSupabase.map(p => p.id);
 
-    // ✅ Verificar si el producto fue importado (si usas esa lógica)
-    const producto = await obtenerProductoPorId(db, mov.producto_id);
-    if (producto?.source === 'import') {
-      console.warn(`⏩ Movimiento ignorado (producto importado): ${mov.id}`);
+  for (const prod of productosLocales) {
+    // 3️⃣ Validar ID UUID
+    if (!prod.id || !/^[0-9a-f-]{36}$/.test(prod.id)) {
+      console.warn(`🚫 Producto ignorado por ID inválido:`, prod);
       continue;
     }
 
-    const movToSend = {
-      id: mov.id,
-      producto_id: mov.producto_id,
-      tipo: mov.tipo,
-      cantidad: parseFloat(mov.cantidad || 1),
-      nota: mov.nota,
-      created_at: mov.created_at || new Date().toISOString()
+    // 4️⃣ Validar duplicado por ID
+    if (prod.subido || idsEnSupabase.includes(prod.id)) continue;
+
+    // 5️⃣ 🔍 Validar duplicado por código o nombre
+    const yaExiste = productosEnSupabase.some(p =>
+      p.codigo === prod.codigo || p.nombre === prod.nombre
+    );
+    if (yaExiste) {
+      console.warn(`⏩ Producto omitido por duplicado (código o nombre): ${prod.codigo} / ${prod.nombre}`);
+      continue;
+    }
+
+    // 6️⃣ Preparar datos para Supabase
+    if (!prod.updated_at) prod.updated_at = new Date().toISOString();
+    const prodSupabase = {
+      id: prod.id,
+      nombre: prod.nombre,
+      precio_costo: prod.precioCosto,
+      precio_venta: prod.precioVenta,
+      stock: prod.stock,
+      updated_at: prod.updated_at,
+      codigo: prod.codigo || '' // Asegúrate de incluir el código si tu tabla lo usa
     };
 
+    // 7️⃣ Enviar a Supabase
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/stock_movements`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -145,57 +173,26 @@ async function subirMovimientosIndexedDBaSupabase() {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
-        body: JSON.stringify([movToSend])
+        body: JSON.stringify([prodSupabase])
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {}
 
-      mov.subido = true;
-      const tx = db.transaction('movimientos', 'readwrite');
-      tx.objectStore('movimientos').put(mov);
+      if (!res.ok) throw new Error(JSON.stringify(data));
 
-      console.log(`📤 Movimiento ${mov.nombre || mov.codigo} sincronizado.`);
+      // 8️⃣ Marcar como subido
+      prod.subido = true;
+      const tx = db.transaction('productos', 'readwrite');
+      tx.objectStore('productos').put(prod);
+
+      console.log(`✅ Producto ${prod.nombre} sincronizado.`);
     } catch (err) {
-      console.error(`❌ Error al subir movimiento ${mov.nombre || mov.codigo}:`, err);
+      console.error(`❌ Error al subir producto ${prod.nombre}:`, err);
     }
   }
 
-  alert('✅ Sincronización de movimientos finalizada.');
+  alert('✅ Sincronización de productos finalizada. Revisa consola.');
 }
-
-// === FUNCIONES AUXILIARES ===
-async function abrirIndexedDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('inventarioDB');
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('❌ No se pudo abrir IndexedDB');
-  });
-}
-
-async function obtenerTodosDeIndexedDB(db, storeName) {
-  return new Promise(resolve => {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => resolve([]);
-  });
-}
-
-async function obtenerProductoPorId(db, id) {
-  return new Promise(resolve => {
-    const tx = db.transaction('productos', 'readonly');
-    const store = tx.objectStore('productos');
-    const req = store.get(id);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => resolve(null);
-  });
-}
-
-// === SINCRONIZACIÓN GLOBAL ===
-async function sincronizarTodo() {
-  await subirProductosIndexedDBaSupabase();
-  await subirMovimientosIndexedDBaSupabase();
-}
-
-window.sincronizarTodo = sincronizarTodo;
