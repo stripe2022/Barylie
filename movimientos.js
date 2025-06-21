@@ -237,36 +237,32 @@ function registrarMovimientoDesdeFormulario(e) {
   const store = tx.objectStore('productos');
   const req = store.get(productoId); // <-- Busca por id
 
-  req.onsuccess = () => {
+ req.onsuccess = () => {
   const producto = req.result;
   if (!producto) {
     mostrarPopupMovimiento('❌ Producto no encontrado.', 'error');
     return;
   }
 
-  // ✅ Validar si producto.id es UUID válido
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(producto.id)) {
     mostrarPopupMovimiento('❌ El producto no tiene un ID válido.', 'error');
     return;
   }
-}
 
+  // ✅ Aquí dentro ya puedes usar `producto`
   if (tipo === 'salida' && producto.stock < cantidad) {
     if (!confirm(`Stock insuficiente (actual: ${producto.stock}). ¿Deseas continuar?`)) {
       return;
-    };
-  };
-
-  
-  
+    }
+  }
 
   producto.stock += tipo === 'entrada' ? cantidad : -cantidad;
   store.put(producto);
 
   const movimiento = {
     id: crypto.randomUUID(),
-    producto_id: producto.id,         // 👈 Asegurado que sea UUID válido
+    producto_id: producto.id,
     codigo: producto.codigo,
     nombre: producto.nombre,
     tipo,
@@ -285,7 +281,6 @@ function registrarMovimientoDesdeFormulario(e) {
     const mensaje = `✅ Has ${tipo === 'entrada' ? 'añadido' : 'retirado'} ${cantidad} unidades.\n📦 Total actual: ${producto.stock}`;
     mostrarPopupMovimiento(mensaje, 'exito');
 
-    // Reset del formulario
     document.getElementById('formMovimiento').reset();
     document.getElementById('stockActual').textContent = '--';
     document.getElementById('previewMovimiento')?.removeAttribute('src');
@@ -293,6 +288,7 @@ function registrarMovimientoDesdeFormulario(e) {
     window.productoSeleccionado = null;
   };
 };
+}
 
 
 
