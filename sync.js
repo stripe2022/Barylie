@@ -97,7 +97,7 @@ async function subirProductosIndexedDBaSupabase() {
 
 
 // === SUBIR MOVIMIENTOS ===
-async function subirProductosIndexedDBaSupabase() {
+async function subirMovimientosIndexedDBaSupabase() {
   const db = await new Promise((resolve, reject) => {
     const request = indexedDB.open('inventarioDB');
     request.onsuccess = () => resolve(request.result);
