@@ -30,18 +30,14 @@ async function subirProductosIndexedDBaSupabase() {
   const productosRemotos = await getProductosRemotos();
 
   for (const prod of productosLocales) {
-    if (!/^[0-9a-f-]{36}$/.test(prod.id)) continue; // UUID inválido
-
+    if (!/^[0-9a-f-]{36}$/.test(prod.id)) continue;
     const remoto = productosRemotos.find(p => p.id === prod.id);
-    if (remoto && remoto.nombre !== prod.nombre) continue; // conflicto nombre
-
-    if (remoto && remoto.updated_at && prod.updated_at && new Date(remoto.updated_at) >= new Date(prod.updated_at)) continue; // remoto más reciente
-
+    if (remoto && remoto.nombre !== prod.nombre) continue;
+    if (remoto && remoto.updated_at && prod.updated_at && new Date(remoto.updated_at) >= new Date(prod.updated_at)) continue;
     if (!remoto) {
       const dup = productosRemotos.some(p => p.codigo === prod.codigo || p.nombre === prod.nombre);
       if (dup) continue;
     }
-
     if (!prod.updated_at) prod.updated_at = new Date().toISOString();
 
     const payload = [{
@@ -91,7 +87,6 @@ async function subirMovimientosIndexedDBaSupabase() {
     return;
   }
 
-  // 🔄 Estructura EXACTA requerida por la tabla Supabase
   const movimientosUniformes = pendientes.map(mov => ({
     id: mov.id,
     producto_id: mov.producto_id,
@@ -101,32 +96,40 @@ async function subirMovimientosIndexedDBaSupabase() {
     nota: mov.nota ?? ''
   }));
 
-  // Depuración opcional
-  console.log('▶ Movimientos a subir:', movimientosUniformes);
-  console.log('▶ Claves únicas:', [...new Set(movimientosUniformes.flatMap(m => Object.keys(m)))]);
+  const txUpdate = db.transaction('movimientos', 'readwrite');
+  const store = txUpdate.objectStore('movimientos');
+  let subidos = 0;
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal'
-    },
-    body: JSON.stringify(movimientosUniformes)
-  });
+  for (const movObj of movimientosUniformes) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify([movObj])
+      });
 
-  if (!res.ok) {
-    console.error('❌ Error subiendo movimientos:', await res.text());
-    return;
+      if (!res.ok) {
+        console.error('❌ Error subiendo movimiento', movObj, await res.text());
+        continue;
+      }
+
+      const localMov = pendientes.find(p => p.id === movObj.id);
+      if (localMov) {
+        localMov.subido = true;
+        store.put(localMov);
+      }
+      subidos++;
+    } catch (err) {
+      console.error('❌ Fetch failed para movimiento', movObj, err);
+    }
   }
 
-  // ✅ Marcar como subidos
-  const tx = db.transaction('movimientos', 'readwrite');
-  const store = tx.objectStore('movimientos');
-  pendientes.forEach(mov => { mov.subido = true; store.put(mov); });
-
-  console.log(`✅ Movimientos sincronizados: ${pendientes.length}`);
+  console.log(`✅ Movimientos sincronizados: ${subidos}/${pendientes.length}`);
 }
 
 // === FUNCIÓN MAESTRA ===
