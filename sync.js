@@ -1,5 +1,4 @@
 // === CONEXIÓN SUPABASE ===
-// ⚠️ Sustituye estas constantes por variables de entorno en producción
 const SUPABASE_URL = 'https://fzopqkxxueprkppfgypw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6b3Bxa3h4dWVwcmtwcGZneXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyNTg4MTQsImV4cCI6MjA2NTgzNDgxNH0.AMXqVIOmo8rqlxrqNWjmXiEp72kqLbIWQjke9bZ12Qg';
 
@@ -13,12 +12,9 @@ function openDB() {
 }
 
 async function getProductosRemotos() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/productos_stock?select=id,nombre,codigo,updated_at`,
-    {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    }
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?select=id,nombre,codigo,updated_at`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
   if (!res.ok) throw new Error('❌ Error obteniendo productos remotos');
   return res.json();
 }
@@ -26,31 +22,23 @@ async function getProductosRemotos() {
 // === SUBIR / ACTUALIZAR PRODUCTOS ===
 async function subirProductosIndexedDBaSupabase() {
   const db = await openDB();
-
   const productosLocales = await new Promise(r => {
     const tx = db.transaction('productos', 'readonly');
     tx.objectStore('productos').getAll().onsuccess = e => r(e.target.result ?? []);
   });
-
   const productosRemotos = await getProductosRemotos();
 
   for (const prod of productosLocales) {
     if (!/^[0-9a-f-]{36}$/.test(prod.id)) continue; // UUID inválido
 
     const remoto = productosRemotos.find(p => p.id === prod.id);
+    if (remoto && remoto.nombre !== prod.nombre) continue; // conflicto nombre
 
-    if (remoto && remoto.nombre !== prod.nombre) continue; // conflicto de nombre
-
-    if (
-      remoto &&
-      remoto.updated_at &&
-      prod.updated_at &&
-      new Date(remoto.updated_at) >= new Date(prod.updated_at)
-    ) continue; // remoto más nuevo o igual
+    if (remoto && remoto.updated_at && prod.updated_at && new Date(remoto.updated_at) >= new Date(prod.updated_at)) continue; // remoto más reciente
 
     if (!remoto) {
       const dup = productosRemotos.some(p => p.codigo === prod.codigo || p.nombre === prod.nombre);
-      if (dup) continue; // código / nombre ya usado
+      if (dup) continue;
     }
 
     if (!prod.updated_at) prod.updated_at = new Date().toISOString();
@@ -65,19 +53,16 @@ async function subirProductosIndexedDBaSupabase() {
       updated_at: prod.updated_at
     }];
 
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/productos_stock?on_conflict=id`,
-      {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates,return=minimal'
-        },
-        body: JSON.stringify(payload)
-      }
-    );
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?on_conflict=id`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
 
     if (!res.ok) {
       console.error(`❌ Error subiendo ${prod.nombre}:`, await res.text());
@@ -94,8 +79,6 @@ async function subirProductosIndexedDBaSupabase() {
 // === SUBIR MOVIMIENTOS ===
 async function subirMovimientosIndexedDBaSupabase() {
   const db = await openDB();
-
-  // 1️⃣ Movimientos locales pendientes
   const movimientosLocales = await new Promise(r => {
     const tx = db.transaction('movimientos', 'readonly');
     tx.objectStore('movimientos').getAll().onsuccess = e => r(e.target.result ?? []);
@@ -107,33 +90,37 @@ async function subirMovimientosIndexedDBaSupabase() {
     return;
   }
 
-  // 2️⃣ Enviar lote
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`,
-    {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(pendientes)
-    }
-  );
+  // 🔄 Ajustar a la estructura EXACTA de la tabla supabase
+  const movimientosUniformes = pendientes.map(mov => ({
+    id: mov.id,
+    producto_id: mov.producto_id,
+    tipo: mov.tipo,
+    cantidad: mov.cantidad,
+    created_at: mov.created_at || new Date().toISOString(),
+    nota: mov.nota ?? ''
+  }));
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(movimientosUniformes)
+  });
 
   if (!res.ok) {
     console.error('❌ Error subiendo movimientos:', await res.text());
     return;
   }
 
-  // 3️⃣ Marcar como subidos
+  // ✅ Marcar como subidos
   const tx = db.transaction('movimientos', 'readwrite');
   const store = tx.objectStore('movimientos');
-  pendientes.forEach(mov => {
-    mov.subido = true;
-    store.put(mov);
-  });
+  pendientes.forEach(mov => { mov.subido = true; store.put(mov); });
+
   console.log(`✅ Movimientos sincronizados: ${pendientes.length}`);
 }
 
