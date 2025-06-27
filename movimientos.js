@@ -258,6 +258,8 @@ function registrarMovimientoDesdeFormulario(e) {
   }
 
   producto.stock += tipo === 'entrada' ? cantidad : -cantidad;
+  producto.updated_at = new Date().toISOString();  // 🔄 marca el momento del cambio
+  producto.subido = false;                         // 🔔 pendiente de sincronizar
   store.put(producto);
 
   const movimiento = {
