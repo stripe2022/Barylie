@@ -1,4 +1,5 @@
 // === CONEXIÓN SUPABASE ===
+// ⚠️ Sustituye estas constantes por variables de entorno en producción
 const SUPABASE_URL = 'https://fzopqkxxueprkppfgypw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6b3Bxa3h4dWVwcmtwcGZneXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyNTg4MTQsImV4cCI6MjA2NTgzNDgxNH0.AMXqVIOmo8rqlxrqNWjmXiEp72kqLbIWQjke9bZ12Qg';
 
@@ -90,15 +91,19 @@ async function subirMovimientosIndexedDBaSupabase() {
     return;
   }
 
-  // 🔄 Ajustar a la estructura EXACTA de la tabla supabase
+  // 🔄 Estructura EXACTA requerida por la tabla Supabase
   const movimientosUniformes = pendientes.map(mov => ({
     id: mov.id,
     producto_id: mov.producto_id,
     tipo: mov.tipo,
     cantidad: mov.cantidad,
-    created_at: mov.created_at || new Date().toISOString(),
+    created_at: mov.created_at ?? new Date().toISOString(),
     nota: mov.nota ?? ''
   }));
+
+  // Depuración opcional
+  console.log('▶ Movimientos a subir:', movimientosUniformes);
+  console.log('▶ Claves únicas:', [...new Set(movimientosUniformes.flatMap(m => Object.keys(m)))]);
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`, {
     method: 'POST',
