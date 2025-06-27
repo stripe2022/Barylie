@@ -89,31 +89,49 @@ async function subirMovimientosIndexedDBaSupabase() {
   let subidos = 0;
 
   // helper para subir stock actualizado de un producto
-  async function patchStockSupabase(productoId) {
-    return new Promise(resolve => {
-      const tx = db.transaction('productos', 'readonly');
-      const req = tx.objectStore('productos').get(productoId);
-      req.onsuccess = async () => {
-        const prod = req.result;
-        if (!prod) return resolve(false);
-        try {
-          const patch = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?id=eq.${productoId}`, {
-            method: 'PATCH',
+  // 🔄 Actualiza el stock del producto en Supabase
+async function patchStockSupabase(productoId) {
+  return new Promise(resolve => {
+    const tx = db.transaction('productos', 'readonly');
+    const req = tx.objectStore('productos').get(productoId);
+
+    req.onsuccess = async () => {
+      const prod = req.result;
+      if (!prod) return resolve(false);
+
+      try {
+        // upsert: inserta si no existe, actualiza si el id ya está
+        const upsert = await fetch(
+          `${SUPABASE_URL}/rest/v1/productos_stock?on_conflict=id`,
+          {
+            method: 'POST',
             headers: {
               apikey: SUPABASE_KEY,
               Authorization: `Bearer ${SUPABASE_KEY}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates,return=minimal'
             },
-            body: JSON.stringify({ stock: prod.stock, updated_at: new Date().toISOString() })
+            body: JSON.stringify([{
+              id: productoId,
+              stock: prod.stock,
+              updated_at: new Date().toISOString()
+            }])
           });
-          resolve(patch.ok);
-        } catch {
-          resolve(false);
+
+        if (!upsert.ok) {
+          console.error('❌ Error al actualizar stock:', await upsert.text());
         }
-      };
-      req.onerror = () => resolve(false);
-    });
-  }
+        resolve(upsert.ok);
+      } catch (err) {
+        console.error('❌ Error de red al actualizar stock:', err);
+        resolve(false);
+      }
+    };
+
+    req.onerror = () => resolve(false);
+  });
+}
+
 
   for (const mov of pendientes) {
     if (!/^[0-9a-f-]{36}$/.test(mov.id) || !/^[0-9a-f-]{36}$/.test(mov.producto_id)) {
