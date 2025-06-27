@@ -101,8 +101,12 @@ async function subirMovimientosIndexedDBaSupabase() {
   let subidos = 0;
 
   for (const movObj of movimientosUniformes) {
+    if (!movObj.id || !/^[0-9a-f-]{36}$/.test(movObj.id) || !movObj.producto_id || !/^[0-9a-f-]{36}$/.test(movObj.producto_id)) {
+      console.warn('⏩ Movimiento ignorado por datos inválidos:', movObj);
+      continue;
+    }
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/movimientos?on_conflict=id`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/stock_movements?on_conflict=id`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_KEY,
