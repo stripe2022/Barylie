@@ -1,5 +1,4 @@
 // === CONEXIÓN SUPABASE ===
-// ⚠️ Sustituye estas constantes por variables de entorno en producción
 const SUPABASE_URL = 'https://fzopqkxxueprkppfgypw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6b3Bxa3h4dWVwcmtwcGZneXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyNTg4MTQsImV4cCI6MjA2NTgzNDgxNH0.AMXqVIOmo8rqlxrqNWjmXiEp72kqLbIWQjke9bZ12Qg';
 
@@ -87,24 +86,23 @@ async function subirMovimientosIndexedDBaSupabase() {
     return;
   }
 
-  const movimientosUniformes = pendientes.map(mov => ({
-    id: mov.id,
-    producto_id: mov.producto_id,
-    tipo: mov.tipo,
-    cantidad: mov.cantidad,
-    created_at: mov.created_at ?? new Date().toISOString(),
-    nota: mov.nota ?? ''
-  }));
-
-  const txUpdate = db.transaction('movimientos', 'readwrite');
-  const store = txUpdate.objectStore('movimientos');
   let subidos = 0;
 
-  for (const movObj of movimientosUniformes) {
-    if (!movObj.id || !/^[0-9a-f-]{36}$/.test(movObj.id) || !movObj.producto_id || !/^[0-9a-f-]{36}$/.test(movObj.producto_id)) {
-      console.warn('⏩ Movimiento ignorado por datos inválidos:', movObj);
+  for (const mov of pendientes) {
+    if (!/^[0-9a-f-]{36}$/.test(mov.id) || !/^[0-9a-f-]{36}$/.test(mov.producto_id)) {
+      console.warn('⏩ Movimiento ignorado por datos inválidos:', mov);
       continue;
     }
+
+    const movObj = {
+      id: mov.id,
+      producto_id: mov.producto_id,
+      tipo: mov.tipo,
+      cantidad: mov.cantidad,
+      created_at: mov.created_at ?? new Date().toISOString(),
+      nota: mov.nota ?? ''
+    };
+
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/stock_movements?on_conflict=id`, {
         method: 'POST',
@@ -122,11 +120,8 @@ async function subirMovimientosIndexedDBaSupabase() {
         continue;
       }
 
-      const localMov = pendientes.find(p => p.id === movObj.id);
-      if (localMov) {
-        localMov.subido = true;
-        store.put(localMov);
-      }
+      const tx = db.transaction('movimientos', 'readwrite');
+      tx.objectStore('movimientos').put({ ...mov, subido: true });
       subidos++;
     } catch (err) {
       console.error('❌ Fetch failed para movimiento', movObj, err);
