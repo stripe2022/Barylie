@@ -88,6 +88,33 @@ async function subirMovimientosIndexedDBaSupabase() {
 
   let subidos = 0;
 
+  // helper para subir stock actualizado de un producto
+  async function patchStockSupabase(productoId) {
+    return new Promise(resolve => {
+      const tx = db.transaction('productos', 'readonly');
+      const req = tx.objectStore('productos').get(productoId);
+      req.onsuccess = async () => {
+        const prod = req.result;
+        if (!prod) return resolve(false);
+        try {
+          const patch = await fetch(`${SUPABASE_URL}/rest/v1/productos_stock?id=eq.${productoId}`, {
+            method: 'PATCH',
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stock: prod.stock, updated_at: new Date().toISOString() })
+          });
+          resolve(patch.ok);
+        } catch {
+          resolve(false);
+        }
+      };
+      req.onerror = () => resolve(false);
+    });
+  }
+
   for (const mov of pendientes) {
     if (!/^[0-9a-f-]{36}$/.test(mov.id) || !/^[0-9a-f-]{36}$/.test(mov.producto_id)) {
       console.warn('⏩ Movimiento ignorado por datos inválidos:', mov);
@@ -123,6 +150,8 @@ async function subirMovimientosIndexedDBaSupabase() {
       const tx = db.transaction('movimientos', 'readwrite');
       tx.objectStore('movimientos').put({ ...mov, subido: true });
       subidos++;
+      // 5️⃣ Patch stock del producto correspondiente
+      await patchStockSupabase(mov.producto_id);
     } catch (err) {
       console.error('❌ Fetch failed para movimiento', movObj, err);
     }
