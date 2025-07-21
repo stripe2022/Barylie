@@ -141,31 +141,47 @@ function guardarProducto(e) {
     };
 
     const esEdicion = $('productIndex').value;
-
     const tx = db.transaction('productos', 'readwrite');
-    tx.objectStore('productos').put(producto);
-    tx.oncomplete = () => {
-      console.log('✅ Producto guardado');
+    const store = tx.objectStore('productos');
 
-      alert(esEdicion ? 'Producto actualizado con éxito' : 'Producto guardado con éxito');
-      resetForm();
-      mostrarTotalProductos();
+    // Si es edición, actualizar directamente
+    if (esEdicion) {
+      store.put(producto);
+      tx.oncomplete = () => {
+        alert('Producto actualizado con éxito');
+        resetForm();
+        mostrarTotalProductos();
 
-
-      if (esEdicion) {
         $('addScreen').classList.add('hidden');
         $('searchScreen').classList.remove('hidden');
         if (typeof buscarProductos === 'function') buscarProductos();
-        $('buscarInput')?.focus(); // Opcional: enfoca el buscador
-      } else {
-        $('addScreen').classList.add('hidden');
-        $('nav').classList.remove('hidden');
-      }
+        $('buscarInput')?.focus();
+        $('productIndex').value = '';
+      };
+      tx.onerror = () => alert('Error al guardar el producto');
+    } else {
+      // Si no es edición, verificar si el código ya existe
+      const checkRequest = store.get(producto.codigo);
+      checkRequest.onsuccess = () => {
+        if (checkRequest.result) {
+          alert('⚠️ Ya existe un producto con ese código');
+          return;
+        }
 
-      $('productIndex').value = ''; // Limpia marcador de edición
-    };
+        // Guardar producto nuevo
+        store.put(producto);
+        tx.oncomplete = () => {
+          alert('Producto guardado con éxito');
+          resetForm();
+          mostrarTotalProductos();
 
-    tx.onerror = () => alert('Error al guardar el producto');
+          $('addScreen').classList.add('hidden');
+          $('nav').classList.remove('hidden');
+          $('productIndex').value = '';
+        };
+        tx.onerror = () => alert('Error al guardar el producto');
+      };
+    }
   });
 }
 
