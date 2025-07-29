@@ -202,7 +202,7 @@ function guardarProducto(e) {
   getRequest.onerror = () => {
     alert('❌ No se pudo obtener el producto original para comparar.');
   };
-}
+
 
     // Guardar producto nuevo
     store.put(producto);
