@@ -82,20 +82,25 @@ function aplicarFiltroHistorial() {
       return;
     }
 
-    resultados.reverse().forEach(mov => {
-      const div = document.createElement('div');
-      div.className = 'movimiento';
-      div.innerHTML = `
-        <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-        <p>Producto: ${mov.codigo} | Cantidad: ${mov.cantidad}</p>
-        <p>Usuario: ${mov.usuario}</p>
-        <p>Nota: ${mov.nota}</p>
-        <hr>
-      `;
-      contenedor.appendChild(div);
-    });
+    // Mostrar los movimientos con nombres de productos
+    (async () => {
+      for (const mov of resultados.reverse()) {
+        const nombreProducto = await obtenerNombreProductoPorCodigo(mov.codigo);
+        const div = document.createElement('div');
+        div.className = 'movimiento';
+        div.innerHTML = `
+          <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
+          <p>Producto: ${nombreProducto || mov.codigo} | Cantidad: ${mov.cantidad}</p>
+          <p>Usuario: ${mov.usuario}</p>
+          <p>Nota: ${mov.nota || ''}</p>
+          <hr>
+        `;
+        contenedor.appendChild(div);
+      }
+    })();
   };
 }
+
 
 function cargarSelectorDeProductos() {
   const select = document.getElementById('productoMovimiento');
