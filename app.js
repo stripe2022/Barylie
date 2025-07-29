@@ -168,6 +168,11 @@ function guardarProducto(e) {
           ? 'Cambios: ' + cambios.join(', ')
           : 'Edición sin cambios relevantes';
 
+          // ✅ Crear transacción justo aquí para guardar el producto
+    const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
+    const store = tx.objectStore('productos');
+    store.put(producto);
+
         // Guardar el producto editado
         store.put(producto);
 
