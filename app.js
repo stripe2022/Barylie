@@ -904,3 +904,7 @@ function mostrarPopupMovimiento(texto, tipo = 'exito') {
   }, 3500);
 }
 
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
