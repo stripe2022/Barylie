@@ -28,18 +28,25 @@ function cargarHistorialFiltrado() {
   req.onsuccess = () => {
     let resultados = req.result;
 
-    // Usamos una función async para permitir consultas paralelas a productos
     (async () => {
       for (const mov of resultados.reverse()) {
         const nombre = await obtenerNombreProductoPorCodigo(mov.codigo);
 
+        // Plantilla dinámica según tipo de movimiento
+        const tipo = mov.tipo.toUpperCase();
+        const fecha = mov.fecha;
+        const usuario = mov.usuario || 'desconocido';
+        const nota = mov.nota || '';
+        const cantidadVisible = (mov.tipo === 'entrada' || mov.tipo === 'salida' || mov.tipo === 'registro');
+
         const div = document.createElement('div');
         div.className = 'movimiento';
         div.innerHTML = `
-          <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-          <p>Producto: ${nombre || mov.codigo} | Cantidad: ${mov.cantidad}</p>
-          <p>Usuario: ${mov.usuario}</p>
-          <p>Nota: ${mov.nota || ''}</p>
+          <p><strong>${tipo}</strong> - ${fecha}</p>
+          <p>Producto: ${nombre || mov.codigo}</p>
+          ${cantidadVisible ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
+          <p>Usuario: ${usuario}</p>
+          <p>Nota: ${nota}</p>
           <hr>
         `;
         contenedor.appendChild(div);
@@ -47,6 +54,7 @@ function cargarHistorialFiltrado() {
     })();
   };
 }
+
 
 function obtenerNombreProductoPorCodigo(codigo) {
   return new Promise(resolve => {
@@ -83,7 +91,6 @@ function aplicarFiltroHistorial() {
       return;
     }
 
-    // Mostrar los movimientos con filtrado por nombre
     (async () => {
       let encontrados = 0;
 
@@ -91,14 +98,17 @@ function aplicarFiltroHistorial() {
         const nombreProducto = await obtenerNombreProductoPorCodigo(mov.codigo);
         const nombreMin = (nombreProducto || '').toLowerCase();
 
-        // Si hay filtro de nombre, y no coincide, saltar
         if (filtroNombre && !nombreMin.includes(filtroNombre)) continue;
+
+        const tipo = mov.tipo.toUpperCase();
+        const mostrarCantidad = ['entrada', 'salida', 'registro'].includes(mov.tipo);
 
         const div = document.createElement('div');
         div.className = 'movimiento';
         div.innerHTML = `
-          <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-          <p>Producto: ${nombreProducto || mov.codigo} | Cantidad: ${mov.cantidad}</p>
+          <p><strong>${tipo}</strong> - ${mov.fecha}</p>
+          <p>Producto: ${nombreProducto || mov.codigo}</p>
+          ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
           <p>Usuario: ${mov.usuario}</p>
           <p>Nota: ${mov.nota || ''}</p>
           <hr>
@@ -113,6 +123,7 @@ function aplicarFiltroHistorial() {
     })();
   };
 }
+
 
 
 function cargarSelectorDeProductos() {

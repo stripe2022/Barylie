@@ -146,42 +146,70 @@ function guardarProducto(e) {
 
     // Si es edición, actualizar directamente
     if (esEdicion) {
-      store.put(producto);
-      tx.oncomplete = () => {
-        alert('Producto actualizado con éxito');
-        resetForm();
-        mostrarTotalProductos();
+  store.put(producto);
 
-        $('addScreen').classList.add('hidden');
-        $('searchScreen').classList.remove('hidden');
-        if (typeof buscarProductos === 'function') buscarProductos();
-        $('buscarInput')?.focus();
-        $('productIndex').value = '';
-      };
-      tx.onerror = () => alert('Error al guardar el producto');
-    } else {
-      // Si no es edición, verificar si el código ya existe
-      const checkRequest = store.get(producto.codigo);
-      checkRequest.onsuccess = () => {
-        if (checkRequest.result) {
-          alert('⚠️ Ya existe un producto con ese código');
-          return;
-        }
+  // Registrar movimiento de edición
+  const txMov = db.transaction('movimientos', 'readwrite');
+  txMov.objectStore('movimientos').add({
+    tipo: 'edicion',
+    codigo: producto.codigo,
+    cantidad: 0,
+    fecha: new Date().toISOString(),
+    motivo: 'Edición de producto',
+    usuario: 'admin'
+  });
 
-        // Guardar producto nuevo
-        store.put(producto);
-        tx.oncomplete = () => {
-          alert('Producto guardado con éxito');
-          resetForm();
-          mostrarTotalProductos();
+  tx.oncomplete = () => {
+    alert('Producto actualizado con éxito');
+    resetForm();
+    mostrarTotalProductos();
 
-          $('addScreen').classList.add('hidden');
-          $('nav').classList.remove('hidden');
-          $('productIndex').value = '';
-        };
-        tx.onerror = () => alert('Error al guardar el producto');
-      };
+    $('addScreen').classList.add('hidden');
+    $('searchScreen').classList.remove('hidden');
+    if (typeof buscarProductos === 'function') buscarProductos();
+    $('buscarInput')?.focus();
+    $('productIndex').value = '';
+  };
+
+  tx.onerror = () => alert('Error al guardar el producto');
+
+} else {
+  // Si no es edición, verificar si el código ya existe
+  const checkRequest = store.get(producto.codigo);
+  checkRequest.onsuccess = () => {
+    if (checkRequest.result) {
+      alert('⚠️ Ya existe un producto con ese código');
+      return;
     }
+
+    // Guardar producto nuevo
+    store.put(producto);
+
+    // Registrar movimiento de nuevo producto
+    const txMov = db.transaction('movimientos', 'readwrite');
+    txMov.objectStore('movimientos').add({
+      tipo: 'registro',
+      codigo: producto.codigo,
+      cantidad: producto.stock || 0,
+      fecha: new Date().toISOString(),
+      motivo: 'Registro de nuevo producto',
+      usuario: 'admin'
+    });
+
+    tx.oncomplete = () => {
+      alert('Producto guardado con éxito');
+      resetForm();
+      mostrarTotalProductos();
+
+      $('addScreen').classList.add('hidden');
+      $('nav').classList.remove('hidden');
+      $('productIndex').value = '';
+    };
+
+    tx.onerror = () => alert('Error al guardar el producto');
+  };
+}
+
   });
 }
 
