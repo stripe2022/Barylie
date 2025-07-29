@@ -40,7 +40,7 @@
         <div class="fila-doble">
           <label>Código:
             <input type="text" id="codigo" />
-            <button type="button" onclick="scanCode()">Escanear</button>
+            <button type="button" onclick="generarCodigoAutomatico8()">🎲 Generar</button>
             <div id="reader" style="display:none;"></div>
             <p id="result"></p>
           </label>
@@ -237,6 +237,11 @@
         console.error('Error al registrar SW:', err);
       });
   }
+  function generarCodigoAutomatico8() {
+  const codigo = Math.floor(10000000 + Math.random() * 90000000); // número aleatorio de 8 dígitos
+  document.getElementById('codigo').value = codigo;
+}
+
 </script>
 
 </body>
