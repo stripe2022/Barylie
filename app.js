@@ -693,19 +693,38 @@ async function importarBackup(event, borrar = false) {
         }
       }
 
-      // Productos
+      // Productos (con verificación de código duplicado)
       if (Array.isArray(backup.productos)) {
-        for (let i = 0; i < backup.productos.length; i += batchSize) {
-          const tx = db.transaction('productos', 'readwrite');
-          const store = tx.objectStore('productos');
-          backup.productos.slice(i, i + batchSize).forEach((prod, j) => {
-            if (!prod || typeof prod !== 'object') return;
-            if (!prod.codigo || !prod.codigo.trim()) {
-              prod.codigo = 'P' + timestamp + '-' + (i + j);
-            }
-            if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
+        for (let i = 0; i < backup.productos.length; i++) {
+          const prod = backup.productos[i];
+          if (!prod || typeof prod !== 'object') continue;
+
+          if (!prod.codigo || !prod.codigo.trim()) {
+            prod.codigo = 'P' + timestamp + '-' + i;
+          }
+
+          // Asegurar que el código sea único
+          await new Promise((resolve) => {
+            const tx = db.transaction('productos', 'readwrite');
+            const store = tx.objectStore('productos');
+            const check = store.get(prod.codigo);
+            check.onsuccess = () => {
+              if (check.result) {
+                // Ya existe un producto con este código
+                prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
+              }
+              if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
+              resolve();
+            };
+            check.onerror = () => {
+              // Si hay error al verificar, igual lo guardamos con nuevo código
+              prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
+              store.put(prod);
+              resolve();
+            };
           });
-          await esperar(10);
+
+          await esperar(5); // Pequeño delay por operación individual
         }
       }
 
