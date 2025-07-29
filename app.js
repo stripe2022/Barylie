@@ -620,7 +620,7 @@ function confirmarImportacion(event) {
 
 
 
-  async function exportarBackup() {
+ async function exportarBackup() {
   try {
     const productos = await new Promise(resolve => {
       const lista = [];
@@ -648,22 +648,52 @@ function confirmarImportacion(event) {
       };
     });
 
-    const [categorias, movimientos] = await Promise.all([
-      new Promise(res => {
-        const tx = db.transaction('categorias', 'readonly');
-        tx.objectStore('categorias').getAll().onsuccess = e => res(e.target.result);
-      }),
-      new Promise(res => {
-        const tx = db.transaction('movimientos', 'readonly');
-        tx.objectStore('movimientos').getAll().onsuccess = e => res(e.target.result);
-      })
-    ]);
+    const categorias = await new Promise(res => {
+      const tx = db.transaction('categorias', 'readonly');
+      tx.objectStore('categorias').getAll().onsuccess = e => res(e.target.result);
+    });
 
+    // ✅ Obtener y agrupar movimientos por tipo
+    const movimientos = await new Promise(resolve => {
+      const agrupados = {
+        entrada: [],
+        salida: [],
+        registro: [],
+        edicion: [],
+        otros: []
+      };
+
+      const tx = db.transaction('movimientos', 'readonly');
+      const store = tx.objectStore('movimientos');
+      const cursor = store.openCursor();
+
+      cursor.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur) {
+          const mov = cur.value;
+          if (mov.tipo && agrupados[mov.tipo]) {
+            agrupados[mov.tipo].push(mov);
+          } else {
+            agrupados.otros.push(mov);
+          }
+          cur.continue();
+        } else {
+          resolve(agrupados);
+        }
+      };
+
+      cursor.onerror = () => {
+        console.error('Error leyendo movimientos');
+        resolve(agrupados);
+      };
+    });
+
+    // ✅ Crear el objeto de respaldo
     const backup = {
       fecha: new Date().toISOString(),
       productos,
       categorias,
-      movimientos
+      movimientos // agrupados por tipo
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -693,7 +723,6 @@ async function importarBackup(event, borrar = false) {
       const backup = JSON.parse(reader.result);
       console.log(`📥 Archivo importado: ${file.name}`);
 
-      // Validación básica del contenido
       if (!backup || typeof backup !== 'object') {
         throw new Error("❌ El archivo no contiene un respaldo válido.");
       }
@@ -709,7 +738,7 @@ async function importarBackup(event, borrar = false) {
         await esperar(50);
       }
 
-      // Categorías
+      // ✅ Importar Categorías
       if (Array.isArray(backup.categorias)) {
         for (let i = 0; i < backup.categorias.length; i += batchSize) {
           const tx = db.transaction('categorias', 'readwrite');
@@ -721,7 +750,7 @@ async function importarBackup(event, borrar = false) {
         }
       }
 
-      // Productos (con verificación de código duplicado)
+      // ✅ Importar Productos
       if (Array.isArray(backup.productos)) {
         for (let i = 0; i < backup.productos.length; i++) {
           const prod = backup.productos[i];
@@ -731,41 +760,51 @@ async function importarBackup(event, borrar = false) {
             prod.codigo = 'P' + timestamp + '-' + i;
           }
 
-          // Asegurar que el código sea único
           await new Promise((resolve) => {
             const tx = db.transaction('productos', 'readwrite');
             const store = tx.objectStore('productos');
             const check = store.get(prod.codigo);
             check.onsuccess = () => {
               if (check.result) {
-                // Ya existe un producto con este código
                 prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
               }
               if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
               resolve();
             };
             check.onerror = () => {
-              // Si hay error al verificar, igual lo guardamos con nuevo código
               prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
               store.put(prod);
               resolve();
             };
           });
 
-          await esperar(5); // Pequeño delay por operación individual
+          await esperar(5);
         }
       }
 
-      // Movimientos
-      if (Array.isArray(backup.movimientos)) {
-        for (let i = 0; i < backup.movimientos.length; i += batchSize) {
-          const tx = db.transaction('movimientos', 'readwrite');
-          const store = tx.objectStore('movimientos');
-          backup.movimientos.slice(i, i + batchSize).forEach(mov => {
-            if (mov && mov.tipo && mov.cantidad) store.put(mov);
-          });
-          await esperar(10);
+      // ✅ Importar Movimientos (soporte para formato agrupado por tipo)
+      const movimientos = backup.movimientos;
+      const todosLosMovs = [];
+
+      if (Array.isArray(movimientos)) {
+        // Formato antiguo (lista plana)
+        todosLosMovs.push(...movimientos);
+      } else if (typeof movimientos === 'object' && movimientos !== null) {
+        // Formato nuevo agrupado
+        for (const tipo in movimientos) {
+          if (Array.isArray(movimientos[tipo])) {
+            todosLosMovs.push(...movimientos[tipo]);
+          }
         }
+      }
+
+      for (let i = 0; i < todosLosMovs.length; i += batchSize) {
+        const tx = db.transaction('movimientos', 'readwrite');
+        const store = tx.objectStore('movimientos');
+        todosLosMovs.slice(i, i + batchSize).forEach(mov => {
+          if (mov && mov.tipo && ('codigo' in mov)) store.put(mov);
+        });
+        await esperar(10);
       }
 
       alert('✅ Copia importada con éxito');
@@ -780,11 +819,6 @@ async function importarBackup(event, borrar = false) {
   };
 
   reader.readAsText(file);
-}
-
-
-function esperar(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 
