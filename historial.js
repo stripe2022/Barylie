@@ -64,6 +64,7 @@ function obtenerNombreProductoPorCodigo(codigo) {
 function aplicarFiltroHistorial() {
   const tipo = document.getElementById('filtroTipo').value;
   const fecha = document.getElementById('filtroFecha').value;
+  const filtroNombre = document.getElementById('filtroNombre').value.trim().toLowerCase();
   const contenedor = document.getElementById('resultadosFiltrados');
   contenedor.innerHTML = '';
 
@@ -82,10 +83,17 @@ function aplicarFiltroHistorial() {
       return;
     }
 
-    // Mostrar los movimientos con nombres de productos
+    // Mostrar los movimientos con filtrado por nombre
     (async () => {
+      let encontrados = 0;
+
       for (const mov of resultados.reverse()) {
         const nombreProducto = await obtenerNombreProductoPorCodigo(mov.codigo);
+        const nombreMin = (nombreProducto || '').toLowerCase();
+
+        // Si hay filtro de nombre, y no coincide, saltar
+        if (filtroNombre && !nombreMin.includes(filtroNombre)) continue;
+
         const div = document.createElement('div');
         div.className = 'movimiento';
         div.innerHTML = `
@@ -96,6 +104,11 @@ function aplicarFiltroHistorial() {
           <hr>
         `;
         contenedor.appendChild(div);
+        encontrados++;
+      }
+
+      if (encontrados === 0) {
+        contenedor.innerHTML = '<p>No se encontraron movimientos con ese nombre.</p>';
       }
     })();
   };
