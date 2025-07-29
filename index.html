@@ -180,20 +180,28 @@
     <!-- Pantalla Historial Filtrado -->
     <section id="historialFiltradoScreen" class="screen hidden">
       <h2>📋 Historial de Movimientos</h2>
-      <div>
-        <label>Tipo:
-          <select id="filtroTipo">
-            <option value="">Todos</option>
-            <option value="entrada">Entrada</option>
-            <option value="salida">Salida</option>
-          </select>
-        </label>
-        <label>Fecha:
-          <input type="date" id="filtroFecha">
-        </label>
-        <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
-        <button onclick="cancelarOperacion()">Cancelar</button>
-      </div>
+      
+     <div>
+  <label>Tipo:
+    <select id="filtroTipo">
+      <option value="">Todos</option>
+      <option value="entrada">Entrada</option>
+      <option value="salida">Salida</option>
+    </select>
+  </label>
+
+  <label>Fecha:
+    <input type="date" id="filtroFecha">
+  </label>
+
+  <label>Nombre:
+    <input type="text" id="filtroNombre" placeholder="Nombre o letra...">
+  </label>
+
+  <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
+  <button onclick="cancelarOperacion()">Cancelar</button>
+</div>
+
       <div id="resultadosFiltrados"></div>
     </section>
   </main>
