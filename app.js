@@ -212,6 +212,28 @@ function resetForm() {
   
 }
 
+function registrarSalida(codigo, cantidad, motivo = 'venta') {
+  const movimiento = {
+    tipo: 'salida',
+    codigo,
+    cantidad,
+    fecha: new Date().toISOString(),
+    motivo,
+    usuario: 'admin' // o el usuario real
+  };
+
+  const tx = db.transaction('movimientos', 'readwrite');
+  tx.objectStore('movimientos').add(movimiento);
+
+  tx.oncomplete = () => {
+    mostrarPopupMovimiento('✅ Salida registrada', 'exito');
+  };
+  tx.onerror = () => {
+    mostrarPopupMovimiento('❌ Error al registrar salida', 'error');
+  };
+}
+
+
 function cancelarOperacion() {
   const esEdicion = $('productIndex').value;
 
@@ -376,6 +398,52 @@ function buscarProductos() {
     contenedor.innerHTML = '<p>Error al buscar productos.</p>';
   };
 }
+
+function registrarSalida(codigo, cantidad, motivo = 'venta') {
+  const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
+  const productosStore = tx.objectStore('productos');
+  const movimientosStore = tx.objectStore('movimientos');
+
+  const productoReq = productosStore.get(codigo);
+  productoReq.onsuccess = () => {
+    const producto = productoReq.result;
+    if (!producto) {
+      alert('❌ Producto no encontrado');
+      return;
+    }
+
+    if (producto.stock < cantidad) {
+      alert('❌ Stock insuficiente');
+      return;
+    }
+
+    // 1. Actualizar stock
+    producto.stock -= cantidad;
+    productosStore.put(producto);
+
+    // 2. Registrar movimiento
+    const movimiento = {
+      tipo: 'salida',
+      codigo,
+      cantidad,
+      fecha: new Date().toISOString(),
+      motivo,
+      usuario: 'admin'
+    };
+    movimientosStore.add(movimiento);
+
+    tx.oncomplete = () => {
+      mostrarPopupMovimiento('✅ Salida registrada', 'exito');
+      mostrarTotalProductos(); // Actualiza contador
+      if (typeof buscarProductos === 'function') buscarProductos(); // Refresca vista
+    };
+
+    tx.onerror = () => {
+      alert('❌ Error al registrar salida');
+    };
+  };
+}
+
 
 function renderizarResultados(resultados) {
   const contenedor = document.getElementById('resultados');
