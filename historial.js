@@ -28,19 +28,37 @@ function cargarHistorialFiltrado() {
   req.onsuccess = () => {
     let resultados = req.result;
 
-    resultados.reverse().forEach(mov => {
-      const div = document.createElement('div');
-      div.className = 'movimiento';
-      div.innerHTML = `
-        <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
-        <p>Producto: ${mov.codigo} | Cantidad: ${mov.cantidad}</p>
-        <p>Usuario: ${mov.usuario}</p>
-        <p>Nota: ${mov.nota}</p>
-        <hr>
-      `;
-      contenedor.appendChild(div);
-    });
+    // Usamos una función async para permitir consultas paralelas a productos
+    (async () => {
+      for (const mov of resultados.reverse()) {
+        const nombre = await obtenerNombreProductoPorCodigo(mov.codigo);
+
+        const div = document.createElement('div');
+        div.className = 'movimiento';
+        div.innerHTML = `
+          <p><strong>${mov.tipo.toUpperCase()}</strong> - ${mov.fecha}</p>
+          <p>Producto: ${nombre || mov.codigo} | Cantidad: ${mov.cantidad}</p>
+          <p>Usuario: ${mov.usuario}</p>
+          <p>Nota: ${mov.nota || ''}</p>
+          <hr>
+        `;
+        contenedor.appendChild(div);
+      }
+    })();
   };
+}
+
+function obtenerNombreProductoPorCodigo(codigo) {
+  return new Promise(resolve => {
+    const tx = db.transaction('productos', 'readonly');
+    const store = tx.objectStore('productos');
+    const req = store.get(codigo);
+
+    req.onsuccess = () => {
+      resolve(req.result?.nombre || null);
+    };
+    req.onerror = () => resolve(null);
+  });
 }
 
 function aplicarFiltroHistorial() {
