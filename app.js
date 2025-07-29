@@ -146,41 +146,63 @@ function guardarProducto(e) {
 
     // Si es edición, actualizar directamente
     if (esEdicion) {
-  store.put(producto);
+  // Obtener el producto original antes de sobrescribirlo
+  const txGet = db.transaction('productos', 'readonly');
+  const storeGet = txGet.objectStore('productos');
+  const getRequest = storeGet.get(producto.codigo);
 
-  // Registrar movimiento de edición
-  const txMov = db.transaction('movimientos', 'readwrite');
-  txMov.objectStore('movimientos').add({
-    tipo: 'edicion',
-    codigo: producto.codigo,
-    cantidad: 0,
-    fecha: new Date().toISOString(),
-    motivo: 'Edición de producto',
-    usuario: 'admin'
-  });
+  getRequest.onsuccess = () => {
+    const original = getRequest.result || {};
+    const cambios = [];
 
-  tx.oncomplete = () => {
-    alert('Producto actualizado con éxito');
-    resetForm();
-    mostrarTotalProductos();
+    if (original.stock !== producto.stock) {
+      cambios.push(`Stock: ${original.stock} → ${producto.stock}`);
+    }
+    if (original.precioCosto !== producto.precioCosto) {
+      cambios.push(`Costo: ${original.precioCosto} → ${producto.precioCosto}`);
+    }
+    if (original.precioVenta !== producto.precioVenta) {
+      cambios.push(`Venta: ${original.precioVenta} → ${producto.precioVenta}`);
+    }
 
-    $('addScreen').classList.add('hidden');
-    $('searchScreen').classList.remove('hidden');
-    if (typeof buscarProductos === 'function') buscarProductos();
-    $('buscarInput')?.focus();
-    $('productIndex').value = '';
+    const nota = cambios.length > 0
+      ? 'Cambios: ' + cambios.join(', ')
+      : 'Edición sin cambios relevantes';
+
+    // Guardar el producto editado
+    store.put(producto);
+
+    // Registrar movimiento de edición
+    const txMov = db.transaction('movimientos', 'readwrite');
+    txMov.objectStore('movimientos').add({
+      tipo: 'edicion',
+      codigo: producto.codigo,
+      cantidad: 0,
+      fecha: new Date().toISOString(),
+      motivo: nota,
+      usuario: 'admin'
+    });
+
+    // Finalizar edición
+    tx.oncomplete = () => {
+      alert('Producto actualizado con éxito');
+      resetForm();
+      mostrarTotalProductos();
+
+      $('addScreen').classList.add('hidden');
+      $('searchScreen').classList.remove('hidden');
+      if (typeof buscarProductos === 'function') buscarProductos();
+      $('buscarInput')?.focus();
+      $('productIndex').value = '';
+    };
+
+    tx.onerror = () => alert('Error al guardar el producto');
   };
 
-  tx.onerror = () => alert('Error al guardar el producto');
-
-} else {
-  // Si no es edición, verificar si el código ya existe
-  const checkRequest = store.get(producto.codigo);
-  checkRequest.onsuccess = () => {
-    if (checkRequest.result) {
-      alert('⚠️ Ya existe un producto con ese código');
-      return;
-    }
+  getRequest.onerror = () => {
+    alert('❌ No se pudo obtener el producto original para comparar.');
+  };
+}
 
     // Guardar producto nuevo
     store.put(producto);
