@@ -36,7 +36,8 @@ function cargarHistorialFiltrado() {
         const tipo = mov.tipo.toUpperCase();
         const fecha = mov.fecha;
         const usuario = mov.usuario || 'desconocido';
-        const nota = mov.nota || '';
+        const nota = mov.nota || mov.motivo || '';
+
         const cantidadVisible = (mov.tipo === 'entrada' || mov.tipo === 'salida' || mov.tipo === 'registro');
 
         const div = document.createElement('div');
