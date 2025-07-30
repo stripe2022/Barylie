@@ -141,11 +141,8 @@ function guardarProducto(e) {
     };
 
     const esEdicion = $('productIndex').value;
-    const tx = db.transaction('productos', 'readwrite');
-    const store = tx.objectStore('productos');
 
     if (esEdicion) {
-      // Obtener el producto original antes de sobrescribirlo
       const txGet = db.transaction('productos', 'readonly');
       const storeGet = txGet.objectStore('productos');
       const getRequest = storeGet.get(producto.codigo);
@@ -168,17 +165,12 @@ function guardarProducto(e) {
           ? 'Cambios: ' + cambios.join(', ')
           : 'Edición sin cambios relevantes';
 
-          // ✅ Crear transacción justo aquí para guardar el producto
-    const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
-    const store = tx.objectStore('productos');
-    store.put(producto);
+        const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
+        const store = tx.objectStore('productos');
+        const storeMov = tx.objectStore('movimientos');
 
-        // Guardar el producto editado
         store.put(producto);
-
-        // Registrar movimiento de edición
-        const txMov = db.transaction('movimientos', 'readwrite');
-        txMov.objectStore('movimientos').add({
+        storeMov.add({
           tipo: 'edicion',
           codigo: producto.codigo,
           cantidad: 0,
@@ -207,12 +199,13 @@ function guardarProducto(e) {
       };
 
     } else {
-      // Guardar producto nuevo
+      const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
+      const store = tx.objectStore('productos');
+      const storeMov = tx.objectStore('movimientos');
+
       store.put(producto);
 
-      // Registrar movimiento de nuevo producto
-      const txMov = db.transaction('movimientos', 'readwrite');
-      txMov.objectStore('movimientos').add({
+      storeMov.add({
         tipo: 'registro',
         codigo: producto.codigo,
         cantidad: producto.stock || 0,
