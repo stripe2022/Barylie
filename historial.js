@@ -107,13 +107,14 @@ function aplicarFiltroHistorial() {
         const div = document.createElement('div');
         div.className = 'movimiento';
         div.innerHTML = `
-          <p><strong>${tipo}</strong> - ${mov.fecha}</p>
-          <p>Producto: ${nombreProducto || mov.codigo}</p>
-          ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
-          <p>Usuario: ${mov.usuario}</p>
-          <p>Nota: ${mov.nota || ''}</p>
-          <hr>
-        `;
+  <p><strong>${tipo}</strong> - ${mov.fecha}</p>
+  <p>Producto: ${nombreProducto || mov.codigo}</p>
+  ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
+  <p>Usuario: ${mov.usuario || 'desconocido'}</p>
+  <p>Nota: ${mov.nota || mov.motivo || ''}</p>
+  <hr>
+`;
+
         contenedor.appendChild(div);
         encontrados++;
       }
