@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barylie-cache-v2'; // Recuerda subir la versión al actualizar
+const CACHE_NAME = 'barylie-cache-v2';
 const ASSETS = [
   '/Barylie/',
   '/Barylie/index.html',
@@ -11,39 +11,27 @@ const ASSETS = [
   '/Barylie/icons/icon-512.png'
 ];
 
-// INSTALACIÓN
+// INSTALACIÓN (NO forzar reemplazo)
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Forzar activación inmediata
+  console.log('🛠 Instalando Service Worker...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
-      cache.addAll(ASSETS).catch(err => {
-        return self.clients.matchAll().then(clients => {
-          clients.forEach(client => {
-            client.postMessage({ tipo: 'offline-error', mensaje: err.message });
-          });
-        });
-      })
+      cache.addAll(ASSETS)
     )
   );
 });
 
-// ACTIVACIÓN
+// ACTIVACIÓN (NO borrar otras versiones)
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim(); // Tomar control inmediato
+  console.log('✅ Activado');
+  event.waitUntil(self.clients.claim());
 });
 
-// FETCH
+// RESPUESTA A FETCH
 self.addEventListener('fetch', event => {
   const req = event.request;
 
-  // Si es una navegación (recarga, abrir app), devolver index.html del caché
+  // Navegación: usar index.html del cache
   if (req.mode === 'navigate') {
     event.respondWith(
       caches.match('/Barylie/index.html')
@@ -51,12 +39,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Para otros recursos (CSS, JS, imágenes, etc.)
+  // Archivos estáticos
   event.respondWith(
     caches.match(req).then(res => {
       return res || fetch(req).catch(() => {
-        // Si falla y no está en cache, mensaje simple
-        return new Response('<h1>⚠️ Sin conexión y recurso no disponible offline</h1>', {
+        return new Response('<h1>⚠️ Sin conexión</h1>', {
           headers: { 'Content-Type': 'text/html' }
         });
       });
