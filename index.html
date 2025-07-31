@@ -230,30 +230,39 @@
   </script>
   <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Barylie/sw.js', { scope: '/Barylie/' })
-      .then(reg => {
-        console.log('SW registrado', reg);
+    window.addEventListener('DOMContentLoaded', () => {
+      navigator.serviceWorker.register('/Barylie/sw.js', { scope: '/Barylie/' })
+        .then(reg => {
+          console.log('✅ Service Worker registrado:', reg.scope);
 
-        reg.onupdatefound = () => {
-          const nuevoSW = reg.installing;
-          nuevoSW.onstatechange = () => {
-            if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
-              alert("🔁 Nueva versión disponible. Recargando...");
-              location.reload();
-            }
+          // Solo informar si hay una actualización, sin recargar
+          reg.onupdatefound = () => {
+            const nuevoSW = reg.installing;
+            nuevoSW.onstatechange = () => {
+              if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log("🔄 Nueva versión del SW instalada. Se activará al cerrar la app.");
+                // Si quisieras mostrar un botón: aquí sería el lugar
+              }
+            };
           };
-        };
-      })
-      .catch(err => {
-        console.error('Error al registrar SW:', err);
-      });
+        })
+        .catch(err => {
+          console.error('❌ Error al registrar el Service Worker:', err);
+        });
+    });
+  } else {
+    console.warn('⚠️ Este navegador no soporta Service Workers.');
   }
+</script>
+<script>
   function generarCodigoAutomatico8() {
   const codigo = Math.floor(10000000 + Math.random() * 90000000); // número aleatorio de 8 dígitos
   document.getElementById('codigo').value = codigo;
 }
-
 </script>
+  
+
+
 
 </body>
 </html>
