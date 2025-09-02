@@ -61,19 +61,62 @@ function mostrarBanner(texto, bgColor = '#333') {
 // INDEXEDDB
 // ===========================
 function abrirDB() {
-  const request = indexedDB.open('inventarioDB', 2);
+  const request = indexedDB.open('inventarioDB', 3);
 
   request.onupgradeneeded = function (e) {
     const db = e.target.result;
-    const store = db.createObjectStore('productos', { keyPath: 'codigo' });
-    store.createIndex('nombre', 'nombre', { unique: false });
-    db.createObjectStore('categorias', { keyPath: 'nombre' });
-    db.createObjectStore('movimientos', { keyPath: 'id', autoIncrement: true });
 
+    // productos
+    let productos;
+    if (!db.objectStoreNames.contains('productos')) {
+      productos = db.createObjectStore('productos', { keyPath: 'codigo' });
+      productos.createIndex('nombre', 'nombre', { unique: false });
+    } else {
+      productos = request.transaction.objectStore('productos');
+      if (!productos.indexNames.contains('nombre')) {
+        productos.createIndex('nombre', 'nombre', { unique: false });
+      }
+    }
+
+    // categorias
+    if (!db.objectStoreNames.contains('categorias')) {
+      db.createObjectStore('categorias', { keyPath: 'nombre' });
+    }
+
+    // movimientos
+    let movimientos;
+    if (!db.objectStoreNames.contains('movimientos')) {
+      movimientos = db.createObjectStore('movimientos', { keyPath: 'id', autoIncrement: true });
+    } else {
+      movimientos = request.transaction.objectStore('movimientos');
+    }
+
+    // Índices nuevos
+    if (!movimientos.indexNames.contains('movUid')) movimientos.createIndex('movUid', 'movUid', { unique: true });
+    if (!movimientos.indexNames.contains('porCodigo')) movimientos.createIndex('porCodigo', 'codigo', { unique: false });
+    if (!movimientos.indexNames.contains('porFecha')) movimientos.createIndex('porFecha', 'fecha', { unique: false });
+
+    // 🔧 BACKFILL v3: añade movUid a movimientos antiguos (los que no tengan)
+    // OJO: esto corre solo durante la actualización de versión.
+    movimientos.openCursor().onsuccess = ev => {
+      const cur = ev.target.result;
+      if (!cur) return;
+      const mov = cur.value;
+      if (!mov.movUid) {
+        // Genera un movUid determinista para no duplicar si reimportaste cosas parecidas:
+        // mezcla id (si existe), codigo, tipo, cantidad y fecha. Si falta algo, rellena.
+        const base = `${mov.id ?? ''}|${mov.codigo ?? ''}|${mov.tipo ?? ''}|${mov.cantidad ?? ''}|${mov.fecha ?? ''}`;
+        const movUid = 'm_' + btoa(unescape(encodeURIComponent(base))).replace(/=+$/,''); // pseudo-hash corto
+        mov.movUid = movUid;
+        cur.update(mov);
+      }
+      cur.continue();
+    };
   };
 
   request.onsuccess = function (e) {
     db = e.target.result;
+    db.onversionchange = () => { try { db.close(); } catch {} alert('BD actualizada en otra pestaña. Recarga.'); };
     cargarCategorias();
     mostrarTotalProductos();
   };
@@ -82,6 +125,7 @@ function abrirDB() {
     console.error('Error al abrir la base de datos');
   };
 }
+
 
 function activarPantallaAdd() {
   ocultarTodasLasPantallas();
@@ -117,11 +161,14 @@ function ocultarTodasLasPantallas() {
 function guardarProducto(e) {
   e.preventDefault();
 
-  Promise.all([
-    capturarFoto(1),
-    capturarFoto(2)
-  ]).then(([fotoProducto, fotoEmbalaje]) => {
-    const producto = {
+  const uuid = () => (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const ahoraISO = new Date().toISOString();
+
+  Promise.all([capturarFoto(1), capturarFoto(2)]).then(async ([fotoProducto, fotoEmbalaje]) => {
+    const nInt = v => { const x = parseInt(v); return Number.isFinite(x) ? x : 0; };
+    const nF   = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
+
+    const nuevo = {
       codigo: $('codigo').value.trim(),
       referencia: $('referencia').value.trim(),
       nombre: $('nombre').value.trim(),
@@ -129,87 +176,36 @@ function guardarProducto(e) {
       categoria: $('categoria').value,
       zona: $('zona').value.trim(),
       descripcion: $('descripcion').value.trim(),
-      cantidad: parseInt($('cantidad').value) || 0,
-      cajas: parseInt($('cajas').value) || 0,
-      precioOriginal: parseFloat($('precioOriginal').value) || 0,
-      tasa: parseFloat($('tasa').value) || 1,
-      precioCosto: parseFloat($('precioCosto').value) || 0,
-      precioVenta: parseFloat($('precioVenta').value) || 0,
-      stock: parseInt($('stock').value) || 0,
+      cantidad: nInt($('cantidad').value),
+      cajas: nInt($('cajas').value),
+      precioOriginal: nF($('precioOriginal').value),
+      tasa: nF($('tasa').value),
+      precioCosto: nF($('precioCosto').value),
+      precioVenta: nF($('precioVenta').value),
+      stock: nInt($('stock').value),
       fotoProducto,
       fotoEmbalaje
     };
 
-    const esEdicion = $('productIndex').value;
+    const codigoOriginal = $('productIndex').value || ''; // si hay valor, estamos editando
+    const esEdicion = !!codigoOriginal;
 
-    if (esEdicion) {
-      const txGet = db.transaction('productos', 'readonly');
-      const storeGet = txGet.objectStore('productos');
-      const getRequest = storeGet.get(producto.codigo);
+    // Alta nueva (sin código original)
+    if (!esEdicion) {
+      const tx = db.transaction(['productos','movimientos'],'readwrite');
+      const prodStore = tx.objectStore('productos');
+      const movStore  = tx.objectStore('movimientos');
 
-      getRequest.onsuccess = () => {
-        const original = getRequest.result || {};
-        const cambios = [];
+      prodStore.put(nuevo);
 
-        if (original.stock !== producto.stock) {
-          cambios.push(`Stock: ${original.stock} → ${producto.stock}`);
-        }
-        if (original.precioCosto !== producto.precioCosto) {
-          cambios.push(`Costo: ${original.precioCosto} → ${producto.precioCosto}`);
-        }
-        if (original.precioVenta !== producto.precioVenta) {
-          cambios.push(`Venta: ${original.precioVenta} → ${producto.precioVenta}`);
-        }
-
-        const nota = cambios.length > 0
-          ? 'Cambios: ' + cambios.join(', ')
-          : 'Edición sin cambios relevantes';
-
-        const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
-        const store = tx.objectStore('productos');
-        const storeMov = tx.objectStore('movimientos');
-
-        store.put(producto);
-        storeMov.add({
-          tipo: 'edicion',
-          codigo: producto.codigo,
-          cantidad: 0,
-          fecha: new Date().toISOString(),
-          motivo: nota,
-          usuario: 'admin'
-        });
-
-        tx.oncomplete = () => {
-          alert('Producto actualizado con éxito');
-          resetForm();
-          mostrarTotalProductos();
-
-          $('addScreen').classList.add('hidden');
-          $('searchScreen').classList.remove('hidden');
-          if (typeof buscarProductos === 'function') buscarProductos();
-          $('buscarInput')?.focus();
-          $('productIndex').value = '';
-        };
-
-        tx.onerror = () => alert('Error al guardar el producto');
-      };
-
-      getRequest.onerror = () => {
-        alert('❌ No se pudo obtener el producto original para comparar.');
-      };
-
-    } else {
-      const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
-      const store = tx.objectStore('productos');
-      const storeMov = tx.objectStore('movimientos');
-
-      store.put(producto);
-
-      storeMov.add({
+      // movimiento de registro (idempotente)
+      const movUidReg = `reg_${nuevo.codigo}_${nuevo.stock}_${ahoraISO}`;
+      movStore.add({
+        movUid: movUidReg,
         tipo: 'registro',
-        codigo: producto.codigo,
-        cantidad: producto.stock || 0,
-        fecha: new Date().toISOString(),
+        codigo: nuevo.codigo,
+        cantidad: nuevo.stock || 0,
+        fecha: ahoraISO,
         motivo: 'Registro de nuevo producto',
         usuario: 'admin'
       });
@@ -218,16 +214,169 @@ function guardarProducto(e) {
         alert('Producto guardado con éxito');
         resetForm();
         mostrarTotalProductos();
-
         $('addScreen').classList.add('hidden');
         $('nav').classList.remove('hidden');
         $('productIndex').value = '';
       };
-
       tx.onerror = () => alert('Error al guardar el producto');
+      return;
     }
+
+    // EDICIÓN (posible cambio de código)
+    const tx = db.transaction(['productos','movimientos'],'readwrite');
+    const prodStore = tx.objectStore('productos');
+    const movStore  = tx.objectStore('movimientos');
+
+    // Cargamos producto original y (si existe) producto con el código nuevo
+    const getOrig = prodStore.get(codigoOriginal);
+    const getNuevoClave = (codigoOriginal !== nuevo.codigo) ? prodStore.get(nuevo.codigo) : null;
+
+    getOrig.onsuccess = async () => {
+      const original = getOrig.result || null;
+
+      if (!original) {
+        // Si no existe el original, tratamos como alta bajo el nuevo código
+        prodStore.put(nuevo);
+        const movUidReg2 = `reg_${nuevo.codigo}_${nuevo.stock}_${ahoraISO}`;
+        movStore.add({ movUid: movUidReg2, tipo:'registro', codigo:nuevo.codigo, cantidad:nuevo.stock||0, fecha:ahoraISO, motivo:'Registro (original no encontrado en edición)', usuario:'admin' });
+        return;
+      }
+
+      // Si el código NO cambia → actualizar + movimientos de ajuste/edición
+      if (codigoOriginal === nuevo.codigo) {
+        const cambios = [];
+        if (original.precioCosto !== nuevo.precioCosto) cambios.push(`Costo: ${original.precioCosto} → ${nuevo.precioCosto}`);
+        if (original.precioVenta !== nuevo.precioVenta) cambios.push(`Venta: ${original.precioVenta} → ${nuevo.precioVenta}`);
+        if (original.stock !== nuevo.stock)           cambios.push(`Stock: ${original.stock} → ${nuevo.stock}`);
+
+        // Actualiza producto
+        prodStore.put(nuevo);
+
+        // Si cambió el stock, crea movimiento de ajuste (entrada/salida)
+        const delta = (nuevo.stock|0) - (original.stock|0);
+        if (delta !== 0) {
+          const tipo = delta > 0 ? 'entrada' : 'salida';
+          const cantidad = Math.abs(delta);
+          const movUidAjuste = `aj_${nuevo.codigo}_${cantidad}_${tipo}_${ahoraISO}`;
+          movStore.add({
+            movUid: movUidAjuste,
+            tipo,
+            codigo: nuevo.codigo,
+            cantidad,
+            fecha: ahoraISO,
+            motivo: 'Ajuste de stock por edición',
+            usuario: 'admin'
+          });
+        }
+
+        // Log de edición
+        const nota = (cambios.length > 0) ? 'Cambios: ' + cambios.join(', ') : 'Edición sin cambios relevantes';
+        const movUidEdit = `ed_${nuevo.codigo}_${ahoraISO}`;
+        movStore.add({
+          movUid: movUidEdit,
+          tipo: 'edicion',
+          codigo: nuevo.codigo,
+          cantidad: 0,
+          fecha: ahoraISO,
+          motivo: nota,
+          usuario: 'admin'
+        });
+
+        return;
+      }
+
+      // Aquí: el código CAMBIA (renombrado de clave primaria)
+      // 1) Verifica que el nuevo código no exista (para no pisar)
+      if (getNuevoClave) {
+        await new Promise(res => { getNuevoClave.onsuccess = () => res(); getNuevoClave.onerror = () => res(); });
+        if (getNuevoClave.result) {
+          tx.abort();
+          alert(`❌ Ya existe un producto con código "${nuevo.codigo}". Cambia el código o elimina ese producto.`);
+          return;
+        }
+      }
+
+      // 2) Mueve el registro: put bajo nuevo código y delete viejo
+      prodStore.put(nuevo);
+      prodStore.delete(codigoOriginal);
+
+      // 3) Migra los movimientos del código viejo → nuevo
+      //    Si existe índice 'porCodigo', úsalo; si no, recórrelos todos.
+      let usarIndex = false;
+      try { movStore.index('porCodigo'); usarIndex = true; } catch {}
+      if (usarIndex) {
+        const idx = movStore.index('porCodigo');
+        const range = IDBKeyRange.only(codigoOriginal);
+        const req = idx.openCursor(range);
+        req.onsuccess = function(ev) {
+          const cur = ev.target.result;
+          if (!cur) return;
+          const mov = cur.value;
+          mov.codigo = nuevo.codigo; // reetiquetar al nuevo código
+          cur.update(mov);
+          cur.continue();
+        };
+      } else {
+        // fallback: recorrer todos y actualizar los que coincidan
+        movStore.openCursor().onsuccess = function(ev) {
+          const cur = ev.target.result;
+          if (!cur) return;
+          const mov = cur.value;
+          if (mov.codigo === codigoOriginal) {
+            mov.codigo = nuevo.codigo;
+            cur.update(mov);
+          }
+          cur.continue();
+        };
+      }
+
+      // 4) Movimiento informativo de renombrado (cantidad 0)
+      const movUidRen = `ren_${codigoOriginal}_to_${nuevo.codigo}_${ahoraISO}`;
+      movStore.add({
+        movUid: movUidRen,
+        tipo: 'edicion',
+        codigo: nuevo.codigo,
+        cantidad: 0,
+        fecha: ahoraISO,
+        motivo: `Renombrado de código (${codigoOriginal} → ${nuevo.codigo})`,
+        usuario: 'admin'
+      });
+
+      // 5) Si además cambió el stock durante la edición, registra ajuste
+      const deltaRen = (nuevo.stock|0) - (original.stock|0);
+      if (deltaRen !== 0) {
+        const tipo = deltaRen > 0 ? 'entrada' : 'salida';
+        const cantidad = Math.abs(deltaRen);
+        const movUidAdj = `aj_${nuevo.codigo}_${cantidad}_${tipo}_${ahoraISO}`;
+        movStore.add({
+          movUid: movUidAdj,
+          tipo,
+          codigo: nuevo.codigo,
+          cantidad,
+          fecha: ahoraISO,
+          motivo: 'Ajuste de stock en renombrado',
+          usuario: 'admin'
+        });
+      }
+    };
+
+    tx.oncomplete = () => {
+      alert('Producto actualizado con éxito');
+      resetForm();
+      mostrarTotalProductos();
+      $('addScreen').classList.add('hidden');
+      $('searchScreen').classList.remove('hidden');
+      if (typeof buscarProductos === 'function') buscarProductos();
+      $('buscarInput')?.focus();
+      $('productIndex').value = ''; // limpia el flag de edición
+    };
+
+    tx.onerror = () => {
+      alert('Error al guardar el producto');
+    };
   });
 }
+
 
 function resetForm() {
   
@@ -753,27 +902,39 @@ async function importarBackup(event, borrar = false) {
         await esperar(50);
       }
 
+      // ==========================
       // ✅ Importar Categorías
+      // ==========================
       if (Array.isArray(backup.categorias)) {
         for (let i = 0; i < backup.categorias.length; i += batchSize) {
           const tx = db.transaction('categorias', 'readwrite');
           const store = tx.objectStore('categorias');
           backup.categorias.slice(i, i + batchSize).forEach(cat => {
-            if (cat && cat.nombre) store.put(cat);
+            if (cat && cat.nombre) store.put({ nombre: String(cat.nombre) });
           });
           await esperar(10);
         }
       }
 
+      // ==========================
       // ✅ Importar Productos
+      // ==========================
       if (Array.isArray(backup.productos)) {
         for (let i = 0; i < backup.productos.length; i++) {
           const prod = backup.productos[i];
           if (!prod || typeof prod !== 'object') continue;
 
-          if (!prod.codigo || !prod.codigo.trim()) {
+          // Código seguro
+          if (!prod.codigo || !String(prod.codigo).trim()) {
             prod.codigo = 'P' + timestamp + '-' + i;
+          } else {
+            prod.codigo = String(prod.codigo).trim();
           }
+
+          // Normaliza numéricos (por si vinieron como string)
+          if (prod.precioCosto != null) prod.precioCosto = parseFloat(prod.precioCosto) || 0;
+          if (prod.precioVenta != null) prod.precioVenta = parseFloat(prod.precioVenta) || 0;
+          if (prod.stock != null) prod.stock = parseInt(prod.stock) || 0;
 
           await new Promise((resolve) => {
             const tx = db.transaction('productos', 'readwrite');
@@ -797,27 +958,90 @@ async function importarBackup(event, borrar = false) {
         }
       }
 
-      // ✅ Importar Movimientos (soporte para formato agrupado por tipo)
-      const movimientos = backup.movimientos;
+      // ==========================
+      // ✅ Importar Movimientos (idempotente con movUid)
+      //    Soporta formato agrupado o lista plana
+      // ==========================
+      const movimientosBlk = backup.movimientos;
       const todosLosMovs = [];
 
-      if (Array.isArray(movimientos)) {
+      if (Array.isArray(movimientosBlk)) {
         // Formato antiguo (lista plana)
-        todosLosMovs.push(...movimientos);
-      } else if (typeof movimientos === 'object' && movimientos !== null) {
-        // Formato nuevo agrupado
-        for (const tipo in movimientos) {
-          if (Array.isArray(movimientos[tipo])) {
-            todosLosMovs.push(...movimientos[tipo]);
+        todosLosMovs.push(...movimientosBlk);
+      } else if (movimientosBlk && typeof movimientosBlk === 'object') {
+        // Formato nuevo agrupado por tipo
+        for (const tipo in movimientosBlk) {
+          if (Array.isArray(movimientosBlk[tipo])) {
+            for (const m of movimientosBlk[tipo]) {
+              todosLosMovs.push({ ...m, tipo: m.tipo || tipo });
+            }
           }
         }
       }
 
-      for (let i = 0; i < todosLosMovs.length; i += batchSize) {
-        const tx = db.transaction('movimientos', 'readwrite');
-        const store = tx.objectStore('movimientos');
-        todosLosMovs.slice(i, i + batchSize).forEach(mov => {
-          if (mov && mov.tipo && ('codigo' in mov)) store.put(mov);
+      // Normaliza cada movimiento y genera movUid si falta
+      const normalizados = todosLosMovs
+        .filter(m => m && (m.codigo != null)) // requiere al menos codigo
+        .map((m, i) => {
+          const codigo = String(m.codigo ?? '').trim();
+          const tipo = (m.tipo === 'entrada' || m.tipo === 'salida' || m.tipo === 'registro' || m.tipo === 'edicion')
+            ? m.tipo : (m.tipo ? String(m.tipo) : 'otros');
+          const cantidad = parseInt(m.cantidad) || 0;
+
+          // Asegura fecha ISO
+          let fechaISO = new Date().toISOString();
+          if (m.fecha && !isNaN(Date.parse(m.fecha))) {
+            fechaISO = new Date(m.fecha).toISOString();
+          }
+
+          // movUid determinista si no viene (evita duplicar al reimportar el mismo backup)
+          const base = `${m.id ?? ''}|${codigo}|${tipo}|${cantidad}|${fechaISO}`;
+          const movUid = m.movUid || ('m_' + btoa(unescape(encodeURIComponent(base))).replace(/=+$/,''));
+
+          return {
+            movUid,
+            codigo,
+            tipo,
+            cantidad,
+            fecha: fechaISO,
+            motivo: m.motivo || m.nota || '',
+            usuario: m.usuario || 'admin'
+          };
+        });
+
+      // Inserta evitando duplicados usando índice movUid (si existe)
+      const batchMov = 200;
+      for (let i = 0; i < normalizados.length; i += batchMov) {
+        await new Promise((resolve) => {
+          const tx = db.transaction('movimientos', 'readwrite');
+          const store = tx.objectStore('movimientos');
+          let idx = null;
+          try { idx = store.index('movUid'); } catch {}
+
+          const slice = normalizados.slice(i, i + batchMov);
+          let pending = slice.length;
+          if (pending === 0) { resolve(); return; }
+
+          for (const mov of slice) {
+            if (idx) {
+              const check = idx.get(mov.movUid);
+              check.onsuccess = () => {
+                if (!check.result) store.add(mov);
+                if (--pending === 0) resolve();
+              };
+              check.onerror = () => {
+                // si falla el índice, intenta add de todas formas
+                store.add(mov).onsuccess = () => { if (--pending === 0) resolve(); };
+              };
+            } else {
+              // Si el índice no existe (ej. importas en v2), añade igual.
+              // Cuando abras con v3, el backfill creará movUid.
+              store.add(mov).onsuccess = () => { if (--pending === 0) resolve(); };
+            }
+          }
+
+          tx.oncomplete = () => {}; // noop
+          tx.onerror = () => resolve(); // no bloquees por errores puntuales
         });
         await esperar(10);
       }
