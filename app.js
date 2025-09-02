@@ -13,14 +13,14 @@ const $ = id => document.getElementById(id);
 // ===========================
 document.addEventListener('DOMContentLoaded', () => {
   abrirDB();
-  $('productForm').addEventListener('submit', guardarProducto);
+  $('productForm')?.addEventListener('submit', guardarProducto);
 
   // Listeners para cálculo automático de precioCosto, precioVenta y stock
-  $('precioOriginal').addEventListener('input', calcularPrecioCosto);
-  $('tasa').addEventListener('input', calcularPrecioCosto);
-  $('precioCosto').addEventListener('input', calcularPrecioVenta);
-  $('cantidad').addEventListener('input', calcularStock);
-  $('cajas').addEventListener('input', calcularStock);
+  $('precioOriginal')?.addEventListener('input', calcularPrecioCosto);
+  $('tasa')?.addEventListener('input', calcularPrecioCosto);
+  $('precioCosto')?.addEventListener('input', calcularPrecioVenta);
+  $('cantidad')?.addEventListener('input', calcularStock);
+  $('cajas')?.addEventListener('input', calcularStock);
   
   // ✅ Registrar Service Worker y mostrar alerta cuando esté listo offline
   if ('serviceWorker' in navigator) {
@@ -103,10 +103,8 @@ function abrirDB() {
       if (!cur) return;
       const mov = cur.value;
       if (!mov.movUid) {
-        // Genera un movUid determinista para no duplicar si reimportaste cosas parecidas:
-        // mezcla id (si existe), codigo, tipo, cantidad y fecha. Si falta algo, rellena.
         const base = `${mov.id ?? ''}|${mov.codigo ?? ''}|${mov.tipo ?? ''}|${mov.cantidad ?? ''}|${mov.fecha ?? ''}`;
-        const movUid = 'm_' + btoa(unescape(encodeURIComponent(base))).replace(/=+$/,''); // pseudo-hash corto
+        const movUid = 'm_' + base64Of(base); // pseudo-hash corto sin unescape
         mov.movUid = movUid;
         cur.update(mov);
       }
@@ -126,42 +124,48 @@ function abrirDB() {
   };
 }
 
-
+// ===========================
+// NAVEGACIÓN / PANTALLAS
+// ===========================
 function activarPantallaAdd() {
   ocultarTodasLasPantallas();
   resetForm();
-  $('addScreen').classList.remove('hidden');
- 
+  $('addScreen')?.classList.remove('hidden');
 }
 
 function activarPantallaSearch() {
   ocultarTodasLasPantallas();
-  $('searchScreen').classList.remove('hidden');
+  $('searchScreen')?.classList.remove('hidden');
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';
-  cargarSelectorBusqueda(); 
+  cargarSelectorBusqueda?.(); 
   mostrarTotalProductos(); 
 }
 
 function activarPantallaStock() {
   ocultarTodasLasPantallas();
-  $('stockScreen').classList.remove('hidden');
+  $('stockScreen')?.classList.remove('hidden');
   $('buscarStock').value = '';
   $('stockResultado').innerHTML = '';
-
-   mostrarTotalProductos(); 
+  mostrarTotalProductos(); 
 }
 
 function ocultarTodasLasPantallas() {
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $('nav').classList.add('hidden'); // Oculta los botones del menú
+  $('nav')?.classList.add('hidden'); // Oculta los botones del menú
 }
 
+function showScreen(pantallaId) {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  $(pantallaId + 'Screen')?.classList.remove('hidden');
+}
 
+// ===========================
+// GUARDAR / EDITAR PRODUCTO (maneja cambio de código)
+// ===========================
 function guardarProducto(e) {
   e.preventDefault();
 
-  const uuid = () => (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const ahoraISO = new Date().toISOString();
 
   Promise.all([capturarFoto(1), capturarFoto(2)]).then(async ([fotoProducto, fotoEmbalaje]) => {
@@ -214,8 +218,8 @@ function guardarProducto(e) {
         alert('Producto guardado con éxito');
         resetForm();
         mostrarTotalProductos();
-        $('addScreen').classList.add('hidden');
-        $('nav').classList.remove('hidden');
+        $('addScreen')?.classList.add('hidden');
+        $('nav')?.classList.remove('hidden');
         $('productIndex').value = '';
       };
       tx.onerror = () => alert('Error al guardar el producto');
@@ -301,7 +305,6 @@ function guardarProducto(e) {
       prodStore.delete(codigoOriginal);
 
       // 3) Migra los movimientos del código viejo → nuevo
-      //    Si existe índice 'porCodigo', úsalo; si no, recórrelos todos.
       let usarIndex = false;
       try { movStore.index('porCodigo'); usarIndex = true; } catch {}
       if (usarIndex) {
@@ -364,8 +367,8 @@ function guardarProducto(e) {
       alert('Producto actualizado con éxito');
       resetForm();
       mostrarTotalProductos();
-      $('addScreen').classList.add('hidden');
-      $('searchScreen').classList.remove('hidden');
+      $('addScreen')?.classList.add('hidden');
+      $('searchScreen')?.classList.remove('hidden');
       if (typeof buscarProductos === 'function') buscarProductos();
       $('buscarInput')?.focus();
       $('productIndex').value = ''; // limpia el flag de edición
@@ -377,97 +380,111 @@ function guardarProducto(e) {
   });
 }
 
-
+// ===========================
+// RESET FORM
+// ===========================
 function resetForm() {
-  
-  // Limpiar formulario
   $('productForm')?.reset();
-
-  // Restaurar el título
-  $('tituloFormulario').textContent = 'Añadir Producto';
+  $('tituloFormulario') && ( $('tituloFormulario').textContent = 'Añadir Producto' );
 
   // Limpiar miniaturas de imagen
   document.querySelectorAll('img[id^="preview"]').forEach(img => {
+    if (img.dataset.objurl) { URL.revokeObjectURL(img.dataset.objurl); delete img.dataset.objurl; }
     img.removeAttribute('src');
   });
 
-  // Limpiar archivos de tipo file
-  document.querySelectorAll('input[type="file"]').forEach(input => {
-    input.value = '';
-  });
+  // Limpiar archivos file
+  document.querySelectorAll('input[type="file"]').forEach(input => { input.value = ''; });
 
   // Limpiar el campo oculto de edición
   $('productIndex').value = '';
-
-  
-
-  
 }
 
+// ===========================
+// MOVIMIENTOS RÁPIDOS (salida) - atómico + movUid
+// ===========================
 function registrarSalida(codigo, cantidad, motivo = 'venta') {
-  const movimiento = {
-    tipo: 'salida',
-    codigo,
-    cantidad,
-    fecha: new Date().toISOString(),
-    motivo,
-    usuario: 'admin' // o el usuario real
-  };
+  const ahoraISO = new Date().toISOString();
+  const movUid = `sal_${codigo}_${cantidad}_${ahoraISO}`;
 
-  const tx = db.transaction('movimientos', 'readwrite');
-  tx.objectStore('movimientos').add(movimiento);
+  const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
+  const productosStore = tx.objectStore('productos');
+  const movimientosStore = tx.objectStore('movimientos');
 
-  tx.oncomplete = () => {
-    mostrarPopupMovimiento('✅ Salida registrada', 'exito');
-  };
-  tx.onerror = () => {
-    mostrarPopupMovimiento('❌ Error al registrar salida', 'error');
+  const productoReq = productosStore.get(codigo);
+  productoReq.onsuccess = () => {
+    const producto = productoReq.result;
+    if (!producto) { alert('❌ Producto no encontrado'); return; }
+    if (producto.stock < cantidad) { alert('❌ Stock insuficiente'); return; }
+
+    producto.stock -= cantidad;
+    productosStore.put(producto);
+
+    const movimiento = {
+      movUid,
+      tipo: 'salida',
+      codigo,
+      cantidad,
+      fecha: ahoraISO,
+      motivo,
+      usuario: 'admin'
+    };
+    movimientosStore.add(movimiento);
+
+    tx.oncomplete = () => {
+      mostrarPopupMovimiento('✅ Salida registrada', 'exito');
+      mostrarTotalProductos(); // Actualiza contador
+      if (typeof buscarProductos === 'function') buscarProductos(); // Refresca vista
+    };
+
+    tx.onerror = () => {
+      alert('❌ Error al registrar salida');
+    };
   };
 }
 
-
+// ===========================
+// CANCELACIONES / NAVEGACIÓN
+// ===========================
 function cancelarOperacion() {
   const esEdicion = $('productIndex').value;
-
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-
   if (esEdicion) {
-    // Volver a búsqueda
-    $('searchScreen').classList.remove('hidden');
-    $('tituloFormulario').textContent = 'Añadir Producto';
+    $('searchScreen')?.classList.remove('hidden');
+    $('tituloFormulario') && ( $('tituloFormulario').textContent = 'Añadir Producto' );
     $('productForm')?.reset();
     $('productIndex').value = '';
   } else {
-    // Volver al menú principal
-    $('nav').classList.remove('hidden');
+    $('nav')?.classList.remove('hidden');
     $('productForm')?.reset();
   }
 }
 
-
 function cancelarBusqueda() {
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $('nav').classList.remove('hidden');
+  $('nav')?.classList.remove('hidden');
   $('buscarInput').value = '';
   $('resultados').innerHTML = '';
 }
 function cancelarStock() {
   document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $('nav').classList.remove('hidden');
+  $('nav')?.classList.remove('hidden');
   $('buscarStock').value = '';
   $('stockResultado').innerHTML = '';
 }
 
-
-
+// ===========================
+// CATEGORÍAS
+// ===========================
 function cargarCategorias() {
   const tx = db.transaction('categorias', 'readonly');
   const store = tx.objectStore('categorias');
   const request = store.getAll();
 
   request.onsuccess = () => {
-    categorias = request.result.map(cat => cat.nombre);
+    categorias = (request.result || []).map(cat => cat.nombre);
     const select = $('categoria');
+    if (!select) return;
     select.innerHTML = '';
 
     if (categorias.length === 0) {
@@ -514,45 +531,13 @@ function eliminarCategoriaSeleccionada() {
   }
 }
 
-function showScreen(pantallaId) {
-  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
-  $(pantallaId + 'Screen').classList.remove('hidden');
-}
-
 // ===========================
-// CÁLCULOS AUTOMÁTICOS
+// BÚSQUEDA / LISTADO
 // ===========================
-function calcularStock() {
-  const cantidad = parseInt($('cantidad').value);
-  const cajas = parseInt($('cajas').value);
-  if (!isNaN(cantidad) && !isNaN(cajas)) {
-    const stock = cantidad * cajas;
-    $('stock').value = stock;
-  }
-}
-function calcularPrecioCosto() {
-  const precioOriginal = parseFloat($('precioOriginal').value);
-  const tasa = parseFloat($('tasa').value);
-  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
-    const costo = precioOriginal * tasa * 2;
-    $('precioCosto').value = costo.toFixed(2);
-    calcularPrecioVenta();
-  }
-}
-
-function calcularPrecioVenta() {
-  const precioCosto = parseFloat($('precioCosto').value);
-  if (!isNaN(precioCosto)) {
-    const venta = precioCosto * 1.3;
-    $('precioVenta').value = venta.toFixed(2);
-  }
-}
-
 function mostrarPantallaAddSinReset() {
   showScreen('add'); // Usa tu función genérica
-  $('nav').classList.add('hidden');
+  $('nav')?.classList.add('hidden');
 }
-
 
 function buscarProductos() {
   const consulta = $('buscarInput').value.trim().toLowerCase();
@@ -560,10 +545,9 @@ function buscarProductos() {
   contenedor.innerHTML = '';
 
   if (!consulta) {
-  contenedor.innerHTML = '';
-  return;
-}
-
+    contenedor.innerHTML = '';
+    return;
+  }
 
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
@@ -572,8 +556,8 @@ function buscarProductos() {
   request.onsuccess = () => {
     const resultados = request.result.filter(prod => {
       return (
-        prod.codigo.toLowerCase().includes(consulta) ||
-        prod.nombre.toLowerCase().includes(consulta)
+        (prod.codigo || '').toLowerCase().includes(consulta) ||
+        (prod.nombre || '').toLowerCase().includes(consulta)
       );
     });
 
@@ -582,7 +566,6 @@ function buscarProductos() {
       return;
     }
 
-    // ✅ Usa la nueva función de renderizado
     renderizarResultados(resultados);
   };
 
@@ -591,54 +574,14 @@ function buscarProductos() {
   };
 }
 
-function registrarSalida(codigo, cantidad, motivo = 'venta') {
-  const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
-  const productosStore = tx.objectStore('productos');
-  const movimientosStore = tx.objectStore('movimientos');
-
-  const productoReq = productosStore.get(codigo);
-  productoReq.onsuccess = () => {
-    const producto = productoReq.result;
-    if (!producto) {
-      alert('❌ Producto no encontrado');
-      return;
-    }
-
-    if (producto.stock < cantidad) {
-      alert('❌ Stock insuficiente');
-      return;
-    }
-
-    // 1. Actualizar stock
-    producto.stock -= cantidad;
-    productosStore.put(producto);
-
-    // 2. Registrar movimiento
-    const movimiento = {
-      tipo: 'salida',
-      codigo,
-      cantidad,
-      fecha: new Date().toISOString(),
-      motivo,
-      usuario: 'admin'
-    };
-    movimientosStore.add(movimiento);
-
-    tx.oncomplete = () => {
-      mostrarPopupMovimiento('✅ Salida registrada', 'exito');
-      mostrarTotalProductos(); // Actualiza contador
-      if (typeof buscarProductos === 'function') buscarProductos(); // Refresca vista
-    };
-
-    tx.onerror = () => {
-      alert('❌ Error al registrar salida');
-    };
-  };
-}
-
-
 function renderizarResultados(resultados) {
   const contenedor = document.getElementById('resultados');
+
+  // ♻️ Revoca URLs previas si las hubiera
+  Array.from(contenedor.querySelectorAll('img[data-objurl]')).forEach(img => {
+    try { URL.revokeObjectURL(img.dataset.objurl); } catch {}
+  });
+
   contenedor.innerHTML = '';
 
   resultados.forEach(prod => {
@@ -651,6 +594,7 @@ function renderizarResultados(resultados) {
       const url = URL.createObjectURL(blob);
       const img = document.createElement('img');
       img.src = url;
+      img.dataset.objurl = url; // 👈 para poder revocar luego
       img.alt = 'Foto del producto';
       img.style.cursor = 'pointer';
       img.onclick = () => mostrarImagenAmpliada(url);
@@ -671,22 +615,21 @@ function renderizarResultados(resultados) {
 
     const btnEditar = document.createElement('button');
     btnEditar.textContent = '✏️ Editar';
-    btnEditar.classList.add('editar-btn'); // Estilo
+    btnEditar.classList.add('editar-btn');
     btnEditar.onclick = () => editarProducto(prod.codigo);
     acciones.appendChild(btnEditar);
 
     const btnEliminar = document.createElement('button');
     btnEliminar.textContent = '🗑️';
-     btnEliminar.classList.add('eliminar-btn'); // Estilo
+    btnEliminar.classList.add('eliminar-btn');
     btnEliminar.onclick = () => confirmarEliminar(prod.codigo);
     acciones.appendChild(btnEliminar);
 
     const btnInfo = document.createElement('button');
     btnInfo.textContent = 'ℹ️ Info';
     btnInfo.classList.add('info-btn');
-    btnInfo.onclick = () => verInfoProducto(prod);
+    btnInfo.onclick = () => verInfoProducto?.(prod);
     acciones.appendChild(btnInfo);
-
 
     tarjeta.appendChild(imgContainer);
     tarjeta.appendChild(info);
@@ -696,9 +639,7 @@ function renderizarResultados(resultados) {
   });
 }
 
-
-
-  // ===========================
+// ===========================
 // FUNCIÓN PARA EDITAR PRODUCTO
 // ===========================
 function editarProducto(codigo) {
@@ -713,36 +654,37 @@ function editarProducto(codigo) {
       return;
     }
 
-    // Mostrar pantalla de edición
-    
     mostrarPantallaAddSinReset();
-    $('tituloFormulario').textContent = 'Editar Producto';
-
+    $('tituloFormulario') && ( $('tituloFormulario').textContent = 'Editar Producto' );
 
     // Llenar campos del formulario
     $('codigo').value = producto.codigo;
-    $('referencia').value = producto.referencia;
-    $('nombre').value = producto.nombre;
-    $('proveedor').value = producto.proveedor;
-    $('categoria').value = producto.categoria;
-    $('zona').value = producto.zona;
-    $('descripcion').value = producto.descripcion;
-    $('cantidad').value = producto.cantidad;
-    $('cajas').value = producto.cajas;
-    $('precioOriginal').value = producto.precioOriginal;
-    $('tasa').value = producto.tasa;
-    $('precioCosto').value = producto.precioCosto;
-    $('precioVenta').value = producto.precioVenta;
-    $('stock').value = producto.stock;
+    $('referencia').value = producto.referencia || '';
+    $('nombre').value = producto.nombre || '';
+    $('proveedor').value = producto.proveedor || '';
+    $('categoria').value = producto.categoria || '';
+    $('zona').value = producto.zona || '';
+    $('descripcion').value = producto.descripcion || '';
+    $('cantidad').value = producto.cantidad || 0;
+    $('cajas').value = producto.cajas || 0;
+    $('precioOriginal').value = producto.precioOriginal || 0;
+    $('tasa').value = producto.tasa || 1;
+    $('precioCosto').value = producto.precioCosto || 0;
+    $('precioVenta').value = producto.precioVenta || 0;
+    $('stock').value = producto.stock || 0;
 
     // Mostrar imágenes si existen
     if (producto.fotoProducto) {
       const blob1 = new Blob([new Uint8Array(producto.fotoProducto)], { type: 'image/jpeg' });
-      $('preview1').src = URL.createObjectURL(blob1);
+      const url1 = URL.createObjectURL(blob1);
+      $('preview1').src = url1;
+      $('preview1').dataset.objurl = url1;
     }
     if (producto.fotoEmbalaje) {
       const blob2 = new Blob([new Uint8Array(producto.fotoEmbalaje)], { type: 'image/jpeg' });
-      $('preview2').src = URL.createObjectURL(blob2);
+      const url2 = URL.createObjectURL(blob2);
+      $('preview2').src = url2;
+      $('preview2').dataset.objurl = url2;
     }
 
     // Guardar código en un input hidden para saber si se está editando
@@ -751,18 +693,15 @@ function editarProducto(codigo) {
 }
 
 // ===========================
-// ACTUALIZAR EN LUGAR DE CREAR
+// MOSTRAR/OCULTAR MENÚ
 // ===========================
-
-
-// Mostrar/ocultar menú
 document.addEventListener('click', e => {
   const toggle = e.target.closest('.dropdown-toggle');
   const menu = document.querySelector('.dropdown-menu');
   if (toggle) {
-    menu.classList.toggle('hidden');
+    menu?.classList.toggle('hidden');
   } else if (!e.target.closest('.dropdown-backup')) {
-    menu.classList.add('hidden');
+    menu?.classList.add('hidden');
   }
 });
 
@@ -770,21 +709,17 @@ function generarCodigoAutomatico() {
   return 'P' + Date.now() + Math.floor(Math.random() * 1000);
 }
 
-
-
+// ===========================
+// BACKUP: EXPORTAR / IMPORTAR
+// ===========================
 function confirmarImportacion(event) {
   const fileInput = event.target;
   const borrarTodo = confirm("¿Deseas borrar todos los datos actuales antes de importar?\n\nAceptar = Reemplazar todo\nCancelar = Fusionar con lo existente");
-  
   importarBackup(event, borrarTodo);
-
-  // ✅ Esto permite volver a seleccionar el mismo archivo después
-  fileInput.value = '';
+  fileInput.value = ''; // permite reseleccionar el mismo archivo
 }
 
-
-
- async function exportarBackup() {
+async function exportarBackup() {
   try {
     const productos = await new Promise(resolve => {
       const lista = [];
@@ -817,7 +752,7 @@ function confirmarImportacion(event) {
       tx.objectStore('categorias').getAll().onsuccess = e => res(e.target.result);
     });
 
-    // ✅ Obtener y agrupar movimientos por tipo
+    // ✅ Obtener y agrupar movimientos por tipo (conserva movUid)
     const movimientos = await new Promise(resolve => {
       const agrupados = {
         entrada: [],
@@ -852,12 +787,11 @@ function confirmarImportacion(event) {
       };
     });
 
-    // ✅ Crear el objeto de respaldo
     const backup = {
       fecha: new Date().toISOString(),
       productos,
       categorias,
-      movimientos // agrupados por tipo
+      movimientos // agrupados por tipo, respetando movUid
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -873,8 +807,6 @@ function confirmarImportacion(event) {
     console.error(error);
   }
 }
-
-
 
 async function importarBackup(event, borrar = false) {
   const file = event.target.files[0];
@@ -902,6 +834,9 @@ async function importarBackup(event, borrar = false) {
         await esperar(50);
       }
 
+      // Mapa para códigos cambiados durante importación
+      const codeMap = new Map(); // oldCode -> newCode
+
       // ==========================
       // ✅ Importar Categorías
       // ==========================
@@ -924,12 +859,7 @@ async function importarBackup(event, borrar = false) {
           const prod = backup.productos[i];
           if (!prod || typeof prod !== 'object') continue;
 
-          // Código seguro
-          if (!prod.codigo || !String(prod.codigo).trim()) {
-            prod.codigo = 'P' + timestamp + '-' + i;
-          } else {
-            prod.codigo = String(prod.codigo).trim();
-          }
+          const oldCode = (prod.codigo && String(prod.codigo).trim()) ? String(prod.codigo).trim() : `P${timestamp}-${i}`;
 
           // Normaliza numéricos (por si vinieron como string)
           if (prod.precioCosto != null) prod.precioCosto = parseFloat(prod.precioCosto) || 0;
@@ -939,16 +869,22 @@ async function importarBackup(event, borrar = false) {
           await new Promise((resolve) => {
             const tx = db.transaction('productos', 'readwrite');
             const store = tx.objectStore('productos');
-            const check = store.get(prod.codigo);
+            const check = store.get(oldCode);
             check.onsuccess = () => {
+              let finalCode = oldCode;
               if (check.result) {
-                prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
+                finalCode = `P${timestamp}-${i}-${Math.floor(Math.random() * 1000)}`;
               }
+              prod.codigo = finalCode;
+              // Si el código cambió, mapea para corregir movimientos entrantes
+              if (finalCode !== oldCode) codeMap.set(oldCode, finalCode);
               if (prod.nombre && prod.precioCosto >= 0) store.put(prod);
               resolve();
             };
             check.onerror = () => {
-              prod.codigo = 'P' + timestamp + '-' + i + '-' + Math.floor(Math.random() * 1000);
+              const finalCode = `P${timestamp}-${i}-${Math.floor(Math.random() * 1000)}`;
+              prod.codigo = finalCode;
+              codeMap.set(oldCode, finalCode);
               store.put(prod);
               resolve();
             };
@@ -979,11 +915,14 @@ async function importarBackup(event, borrar = false) {
         }
       }
 
-      // Normaliza cada movimiento y genera movUid si falta
+      // Normaliza cada movimiento, re-mapea códigos y genera movUid si falta
       const normalizados = todosLosMovs
         .filter(m => m && (m.codigo != null)) // requiere al menos codigo
         .map((m, i) => {
-          const codigo = String(m.codigo ?? '').trim();
+          let codigo = String(m.codigo ?? '').trim();
+          // 🔁 Reasignar si el producto cambió de código durante importación
+          if (codeMap.has(codigo)) codigo = codeMap.get(codigo);
+
           const tipo = (m.tipo === 'entrada' || m.tipo === 'salida' || m.tipo === 'registro' || m.tipo === 'edicion')
             ? m.tipo : (m.tipo ? String(m.tipo) : 'otros');
           const cantidad = parseInt(m.cantidad) || 0;
@@ -996,7 +935,7 @@ async function importarBackup(event, borrar = false) {
 
           // movUid determinista si no viene (evita duplicar al reimportar el mismo backup)
           const base = `${m.id ?? ''}|${codigo}|${tipo}|${cantidad}|${fechaISO}`;
-          const movUid = m.movUid || ('m_' + btoa(unescape(encodeURIComponent(base))).replace(/=+$/,''));
+          const movUid = m.movUid || ('m_' + base64Of(base));
 
           return {
             movUid,
@@ -1060,9 +999,6 @@ async function importarBackup(event, borrar = false) {
   reader.readAsText(file);
 }
 
-
-
-
 // ===========================
 // FOTO A BASE64 INT64 (COMPRESIÓN)
 // ===========================
@@ -1088,25 +1024,46 @@ function capturarFoto(index) {
   });
 }
 
+// ===========================
+// ELIMINAR PRODUCTO (opción para borrar movimientos)
+// ===========================
 function confirmarEliminar(codigo) {
-  if (confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) {
-    const tx = db.transaction('productos', 'readwrite');
-    const store = tx.objectStore('productos');
-    store.delete(codigo);
+  if (!confirm("¿Estás seguro de eliminar el producto con código: " + codigo + "?")) return;
 
-    tx.oncomplete = () => {
-      alert("Producto eliminado: " + codigo);
-      buscarProductos(); // Actualiza la lista después de eliminar
-      mostrarTotalProductos();
+  const borrarMovs = confirm('¿Eliminar también todos sus movimientos?');
+  const stores = borrarMovs ? ['productos','movimientos'] : ['productos'];
 
-    };
+  const tx = db.transaction(stores, 'readwrite');
+  tx.objectStore('productos').delete(codigo);
 
-    tx.onerror = () => {
-      alert("Ocurrió un error al intentar eliminar el producto.");
-    };
+  if (borrarMovs) {
+    const movs = tx.objectStore('movimientos');
+    let usingIdx = false;
+    try { movs.index('porCodigo'); usingIdx = true; } catch {}
+    if (usingIdx) {
+      const idx = movs.index('porCodigo');
+      const req = idx.openCursor(IDBKeyRange.only(codigo));
+      req.onsuccess = e => { const cur = e.target.result; if (!cur) return; cur.delete(); cur.continue(); };
+    } else {
+      movs.openCursor().onsuccess = e => { const cur = e.target.result; if (!cur) return;
+        if (cur.value.codigo === codigo) cur.delete(); cur.continue();
+      };
+    }
   }
+
+  tx.oncomplete = () => {
+    alert("Producto eliminado: " + codigo);
+    buscarProductos?.(); // Actualiza la lista después de eliminar
+    mostrarTotalProductos();
+  };
+  tx.onerror = () => {
+    alert("Ocurrió un error al intentar eliminar el producto.");
+  };
 }
 
+// ===========================
+// TOTALES / POPUPS / MODALES
+// ===========================
 function mostrarTotalProductos() {
   const tx = db.transaction('productos', 'readonly');
   const store = tx.objectStore('productos');
@@ -1114,11 +1071,10 @@ function mostrarTotalProductos() {
 
   req.onsuccess = () => {
     const productos = req.result || [];
-    document.getElementById('totalProductos').textContent = productos.length;
+    const el = document.getElementById('totalProductos');
+    if (el) el.textContent = productos.length;
   };
 }
-
-
 
 function mostrarImagenAmpliada(src) {
   const modal = document.getElementById('modalImagen');
@@ -1130,20 +1086,88 @@ function mostrarImagenAmpliada(src) {
 function cerrarModal() {
   const modal = document.getElementById('modalImagen');
   modal.classList.add('hidden');
-  document.getElementById('imagenAmpliada').src = "";
+  const img = document.getElementById('imagenAmpliada');
+  if (img?.dataset.objurl) { URL.revokeObjectURL(img.dataset.objurl); delete img.dataset.objurl; }
+  if (img) img.src = "";
 }
 
 function mostrarPopupMovimiento(texto, tipo = 'exito') {
   const popup = document.getElementById('popupMovimiento');
+  if (!popup) return;
   popup.textContent = texto;
   popup.className = `popup show ${tipo}`;
-
   setTimeout(() => {
     popup.classList.remove('show');
   }, 3500);
 }
 
+// ===========================
+// UTILIDADES
+// ===========================
 function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// base64 sin unescape (deprecado); util para movUid determinista
+function base64Of(str) {
+  const enc = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < enc.length; i++) bin += String.fromCharCode(enc[i]);
+  return btoa(bin).replace(/=+$/,'');
+}
+
+// ===========================
+// (OPCIONAL) Reparar stock desde movimientos
+// ===========================
+async function recalcularStockDesdeMovimientos() {
+  const tx = db.transaction(['productos','movimientos'],'readwrite');
+  const productos = tx.objectStore('productos');
+  const movimientos = tx.objectStore('movimientos');
+
+  const [prods, movs] = await Promise.all([
+    new Promise(r => { const req = productos.getAll(); req.onsuccess = () => r(req.result||[]); }),
+    new Promise(r => { const req = movimientos.getAll(); req.onsuccess = () => r(req.result||[]); }),
+  ]);
+
+  movs.sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+
+  const acc = new Map(prods.map(p => [p.codigo, 0]));
+  for (const m of movs) {
+    if (!m || !m.codigo) continue;
+    if (!acc.has(m.codigo)) acc.set(m.codigo, 0);
+    if (m.tipo === 'registro' || m.tipo === 'entrada') acc.set(m.codigo, acc.get(m.codigo) + (m.cantidad|0));
+    else if (m.tipo === 'salida') acc.set(m.codigo, acc.get(m.codigo) - (m.cantidad|0));
+  }
+
+  for (const p of prods) { p.stock = acc.get(p.codigo) ?? 0; productos.put(p); }
+
+  await new Promise((res, rej)=>{ tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error); });
+  mostrarPopupMovimiento('✅ Stock recalculado desde movimientos', 'exito');
+  mostrarTotalProductos();
+  if (typeof buscarProductos === 'function') buscarProductos();
+}
+
+// ===========================
+// CÁLCULOS AUTOMÁTICOS
+// ===========================
+function calcularStock() {
+  const cantidad = parseInt($('cantidad').value) || 0;
+  const cajas = parseInt($('cajas').value) || 0;
+  $('stock').value = cantidad * cajas;
+}
+function calcularPrecioCosto() {
+  const precioOriginal = parseFloat($('precioOriginal').value);
+  const tasa = parseFloat($('tasa').value);
+  if (!isNaN(precioOriginal) && !isNaN(tasa)) {
+    const costo = precioOriginal * tasa * 2;
+    $('precioCosto').value = costo.toFixed(2);
+    calcularPrecioVenta();
+  }
+}
+function calcularPrecioVenta() {
+  const precioCosto = parseFloat($('precioCosto').value);
+  if (!isNaN(precioCosto)) {
+    const venta = precioCosto * 1.3;
+    $('precioVenta').value = venta.toFixed(2);
+  }
+}
