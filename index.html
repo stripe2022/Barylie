@@ -20,15 +20,12 @@
           <button onclick="exportarBackup()">🗂️ Exportar</button>
           <label class="import-label">📥 Importar
             <input type="file" accept=".json" onchange="confirmarImportacion(event)" hidden>
-
           </label>
         </div>
       </div>
-      
       <button onclick="mostrarPantallaHistorialConFiltro()">📋 Registros</button>
     </nav>
   </header>
-  
 
   <main>
     <!-- Pantalla Añadir Producto -->
@@ -126,24 +123,21 @@
 
     <!-- Pantalla Buscar Producto -->
     <section id="searchScreen" class="screen hidden">
-      
-<select id="selectorBusqueda" onchange="productoDesdeBusquedaSeleccionado()"></select>
-<button type="button" class="ver-info" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info</button>
 
+      <select id="selectorBusqueda" onchange="productoDesdeBusquedaSeleccionado()"></select>
+      <button type="button" class="ver-info" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info</button>
 
-  <h2>Buscar Producto</h2>
+      <h2>Buscar Producto</h2>
 
- 
-  <div class="barra-busqueda">
-    <input type="text" id="buscarInput" placeholder="Código o nombre..." oninput="buscarProductos()" />
-    <button class="btn-scan" onclick="scanCode(true)">🔍</button>
-  </div>
+      <div class="barra-busqueda">
+        <input type="text" id="buscarInput" placeholder="Código o nombre..." oninput="buscarProductos()" />
+        <button class="btn-scan" onclick="scanCode(true)">🔍</button>
+      </div>
 
-  <button type="button" class="cancelar" onclick="cancelarOperacion()">Cancelar</button>
+      <button type="button" class="cancelar" onclick="cancelarOperacion()">Cancelar</button>
 
-  <div id="resultados"></div>
-</section>
-
+      <div id="resultados"></div>
+    </section>
 
     <div id="modalImagen" class="modal hidden">
       <span class="cerrar-modal" onclick="cerrarModal()">✖️</span>
@@ -163,15 +157,19 @@
         <img id="previewMovimiento" src="" alt="Foto producto" style="max-width: 150px; max-height: 150px; margin: 10px 0;">
         <p>📦 Stock actual: <strong id="stockActual">--</strong></p>
         <button type="button" onclick="verInfoProductoSeleccionado()">ℹ️ Ver Info Producto</button>
+
         <label for="tipoMovimiento">Tipo:</label>
         <select id="tipoMovimiento" required>
           <option value="entrada">➕ Entrada</option>
           <option value="salida">➖ Salida</option>
         </select>
+
         <label for="cantidadMovimiento">Cantidad:</label>
         <input type="number" id="cantidadMovimiento" min="1" required>
+
         <label for="notaMovimiento">Nota (opcional):</label>
         <input type="text" id="notaMovimiento" placeholder="Proveedor, motivo, etc.">
+
         <button type="submit">Registrar Movimiento</button>
         <button type="button" onclick="cancelarOperacion()">Cancelar</button>
       </form>
@@ -180,42 +178,40 @@
     <!-- Pantalla Historial Filtrado -->
     <section id="historialFiltradoScreen" class="screen hidden">
       <h2>📋 Historial de Movimientos</h2>
-      
-     <div>
-  <label>Tipo:
-    <select id="filtroTipo">
-      <option value="">Todos</option>
-      <option value="entrada">Entrada</option>
-      <option value="salida">Salida</option>
-      <option value="registro">Registro</option>
-      <option value="edicion">Edición</option>
 
-    </select>
-  </label>
+      <div>
+        <label>Tipo:
+          <select id="filtroTipo">
+            <option value="">Todos</option>
+            <option value="entrada">Entrada</option>
+            <option value="salida">Salida</option>
+            <option value="registro">Registro</option>
+            <option value="edicion">Edición</option>
+          </select>
+        </label>
 
-  <label>Fecha:
-    <input type="date" id="filtroFecha">
-  </label>
+        <label>Fecha:
+          <input type="date" id="filtroFecha">
+        </label>
 
-  <label>Nombre:
-    <input type="text" id="filtroNombre" placeholder="Nombre o letra...">
-  </label>
+        <label>Nombre:
+          <input type="text" id="filtroNombre" placeholder="Nombre o letra...">
+        </label>
 
-  <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
-  <button onclick="cancelarOperacion()">Cancelar</button>
-</div>
+        <button onclick="aplicarFiltroHistorial()">🔎 Aplicar Filtro</button>
+        <button onclick="cancelarOperacion()">Cancelar</button>
+      </div>
 
       <div id="resultadosFiltrados"></div>
     </section>
   </main>
 
-  <div id="popupMovimiento" class="popup hidden"></div>
-  
+  <!-- (Eliminado el duplicado de #popupMovimiento que estaba aquí) -->
 
-<script src="/Barylie/app.js" defer></script>
-<script src="/Barylie/movimientos.js" defer></script>
-<script src="/Barylie/historial.js" defer></script>
-  
+  <script src="/Barylie/app.js" defer></script>
+  <script src="/Barylie/movimientos.js" defer></script>
+  <script src="/Barylie/historial.js" defer></script>
+
   <script>
     function previewImage(input, index) {
       const file = input.files[0];
@@ -226,43 +222,48 @@
       };
       reader.readAsDataURL(file);
     }
-   
   </script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('DOMContentLoaded', () => {
-    navigator.serviceWorker.register('/Barylie/sw.js', {
-      updateViaCache: 'all',
-      scope: '/Barylie/'
-    }).then(reg => {
-      console.log('✅ SW Barylie registrado:', reg.scope);
-    }).catch(err => console.error('❌ SW Barylie error:', err));
 
-    // Escucha mensajes del SW (opcional)
-    navigator.serviceWorker.addEventListener('message', ev => {
-      console.log('📨 SW Barylie:', ev.data);
-    });
-  });
-}
+  <script>
+    // Stub de scanCode para evitar errores si aún no tienes lector implementado
+    window.scanCode = window.scanCode || function() {
+      alert('Escáner no disponible aún.');
+    };
+  </script>
 
-// Utilidad para enviar comandos (opcional)
-function sendToSWBarylie(msg) {
-  if (navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.controller.postMessage(msg);
-  } else {
-    console.warn('ℹ️ Aún no hay controller del SW Barylie.');
-  }
-}
-</script>
-<script>
-  function generarCodigoAutomatico8() {
-  const codigo = Math.floor(10000000 + Math.random() * 90000000); // número aleatorio de 8 dígitos
-  document.getElementById('codigo').value = codigo;
-}
-</script>
-  
+  <script>
+    // (No se tocan rutas ni registro del Service Worker)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('DOMContentLoaded', () => {
+        navigator.serviceWorker.register('/Barylie/sw.js', {
+          updateViaCache: 'all',
+          scope: '/Barylie/'
+        }).then(reg => {
+          console.log('✅ SW Barylie registrado:', reg.scope);
+        }).catch(err => console.error('❌ SW Barylie error:', err));
 
+        // Escucha mensajes del SW (opcional)
+        navigator.serviceWorker.addEventListener('message', ev => {
+          console.log('📨 SW Barylie:', ev.data);
+        });
+      });
+    }
 
+    // Utilidad para enviar comandos (opcional)
+    function sendToSWBarylie(msg) {
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage(msg);
+      } else {
+        console.warn('ℹ️ Aún no hay controller del SW Barylie.');
+      }
+    }
+  </script>
 
+  <script>
+    function generarCodigoAutomatico8() {
+      const codigo = Math.floor(10000000 + Math.random() * 90000000); // número aleatorio de 8 dígitos
+      document.getElementById('codigo').value = codigo;
+    }
+  </script>
 </body>
 </html>

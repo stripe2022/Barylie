@@ -1,155 +1,182 @@
-// movimientos.js - Módulo para registrar y visualizar movimientos de stock
+// historial.js — Historial de movimientos (compatible con app.js v3)
 
-function mostrarPantallaMovimientos() {
-  mostrarPantalla('movimiento');
-  cargarSelectorDeProductos();
-  document.getElementById('formMovimiento').reset();
-  document.getElementById('stockActual').textContent = '--';
-  document.getElementById('previewMovimiento')?.removeAttribute('src');
-  document.getElementById('buscarProductoMovimiento').value = '';
+// ===========================
+// ADAPTERS / UTILIDADES
+// ===========================
+
+// Adapter para compatibilidad con app.js (showScreen/mostrarPantalla)
+window.mostrarPantalla = window.mostrarPantalla || function(id) {
+  if (typeof showScreen === 'function') return showScreen(id);
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById(id + 'Screen')?.classList.remove('hidden');
+};
+
+function fmtFechaLocal(iso) {
+  try { return new Date(iso).toLocaleString(); } catch { return iso || ''; }
 }
 
+// ===========================
+// PANTALLA HISTORIAL
+// ===========================
 function mostrarPantallaHistorialConFiltro() {
+  // Muestra pantalla
   mostrarPantalla('historialFiltrado');
-  document.getElementById('filtroTipo').value = '';
-  document.getElementById('filtroFecha').value = '';
-  document.getElementById('resultadosFiltrados').innerHTML = '';
+
+  // Resetea filtros
+  const tipoEl = document.getElementById('filtroTipo');
+  const fechaEl = document.getElementById('filtroFecha');
+  const nombreEl = document.getElementById('filtroNombre');
+  const contenedor = document.getElementById('resultadosFiltrados');
+
+  if (tipoEl) tipoEl.value = '';
+  if (fechaEl) fechaEl.value = '';
+  if (nombreEl) nombreEl.value = '';
+  if (contenedor) contenedor.innerHTML = '';
+
+  // Carga inicial
   cargarHistorialFiltrado();
 }
 
-function cargarHistorialFiltrado() {
+// Carga todo el historial, ordenado más reciente → más antiguo
+async function cargarHistorialFiltrado() {
   const contenedor = document.getElementById('resultadosFiltrados');
+  if (!contenedor) return;
   contenedor.innerHTML = '';
 
-  const tx = db.transaction('movimientos', 'readonly');
-  const store = tx.objectStore('movimientos');
-  const req = store.getAll();
+  const tx = db.transaction(['movimientos', 'productos'], 'readonly');
+  const movStore = tx.objectStore('movimientos');
+  const prodStore = tx.objectStore('productos');
 
-  req.onsuccess = () => {
-    let resultados = req.result;
+  const [movs, prods] = await Promise.all([
+    new Promise(res => {
+      const r = movStore.getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    }),
+    new Promise(res => {
+      const r = prodStore.getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    })
+  ]);
 
-    (async () => {
-      for (const mov of resultados.reverse()) {
-        const nombre = await obtenerNombreProductoPorCodigo(mov.codigo);
+  const nombreMap = new Map(prods.map(p => [p.codigo, p.nombre || '']));
 
-        // Plantilla dinámica según tipo de movimiento
-        const tipo = mov.tipo.toUpperCase();
-        const fecha = mov.fecha;
-        const usuario = mov.usuario || 'desconocido';
-        const nota = mov.nota || mov.motivo || '';
+  // Ordenar descendente por fecha ISO (ISO ordena bien alfanuméricamente)
+  movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
-        const cantidadVisible = (mov.tipo === 'entrada' || mov.tipo === 'salida' || mov.tipo === 'registro');
+  if (movs.length === 0) {
+    contenedor.innerHTML = '<p>No hay movimientos registrados todavía.</p>';
+    return;
+  }
 
-        const div = document.createElement('div');
-        div.className = 'movimiento';
-        div.innerHTML = `
-          <p><strong>${tipo}</strong> - ${fecha}</p>
-          <p>Producto: ${nombre || mov.codigo}</p>
-          ${cantidadVisible ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
-          <p>Usuario: ${usuario}</p>
-          <p>Nota: ${nota}</p>
-          <hr>
-        `;
-        contenedor.appendChild(div);
-      }
-    })();
-  };
+  const frag = document.createDocumentFragment();
+
+  for (const mov of movs) {
+    const tipo = (mov.tipo || '').toUpperCase();
+    const fecha = fmtFechaLocal(mov.fecha);
+    const usuario = mov.usuario || 'desconocido';
+    const nota = mov.nota || mov.motivo || '';
+    const nombre = nombreMap.get(mov.codigo) || mov.codigo;
+    const mostrarCantidad = ['entrada', 'salida', 'registro'].includes(mov.tipo);
+
+    const div = document.createElement('div');
+    div.className = 'movimiento';
+    div.innerHTML = `
+      <p><strong>${tipo}</strong> - ${fecha}</p>
+      <p>Producto: ${nombre} <small>(${mov.codigo})</small></p>
+      ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
+      <p>Usuario: ${usuario}</p>
+      <p>Nota: ${nota}</p>
+      <hr>
+    `;
+    frag.appendChild(div);
+  }
+
+  contenedor.appendChild(frag);
 }
 
-
-function obtenerNombreProductoPorCodigo(codigo) {
-  return new Promise(resolve => {
-    const tx = db.transaction('productos', 'readonly');
-    const store = tx.objectStore('productos');
-    const req = store.get(codigo);
-
-    req.onsuccess = () => {
-      resolve(req.result?.nombre || null);
-    };
-    req.onerror = () => resolve(null);
-  });
-}
-
-function aplicarFiltroHistorial() {
-  const tipo = document.getElementById('filtroTipo').value;
-  const fecha = document.getElementById('filtroFecha').value;
-  const filtroNombre = document.getElementById('filtroNombre').value.trim().toLowerCase();
+// Aplica filtros: tipo, día (YYYY-MM-DD) y nombre de producto (contiene)
+async function aplicarFiltroHistorial() {
+  const tipo = document.getElementById('filtroTipo')?.value || '';       // '' | 'entrada' | 'salida' | 'registro' | 'edicion'
+  const fechaHTML = document.getElementById('filtroFecha')?.value || ''; // 'YYYY-MM-DD'
+  const filtroNombre = (document.getElementById('filtroNombre')?.value || '').trim().toLowerCase();
   const contenedor = document.getElementById('resultadosFiltrados');
+  if (!contenedor) return;
   contenedor.innerHTML = '';
 
-  const tx = db.transaction('movimientos', 'readonly');
-  const store = tx.objectStore('movimientos');
-  const req = store.getAll();
+  const tx = db.transaction(['movimientos', 'productos'], 'readonly');
+  const movStore = tx.objectStore('movimientos');
+  const prodStore = tx.objectStore('productos');
 
-  req.onsuccess = () => {
-    let resultados = req.result;
+  const [movs, prods] = await Promise.all([
+    new Promise(res => {
+      const r = movStore.getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    }),
+    new Promise(res => {
+      const r = prodStore.getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    })
+  ]);
 
-    if (tipo) resultados = resultados.filter(mov => mov.tipo === tipo);
-    if (fecha) resultados = resultados.filter(mov => mov.fecha.startsWith(fecha));
+  const nombreMap = new Map(prods.map(p => [p.codigo, p.nombre || '']));
 
-    if (resultados.length === 0) {
-      contenedor.innerHTML = '<p>No se encontraron movimientos con los criterios seleccionados.</p>';
-      return;
-    }
+  let resultados = movs;
 
-    (async () => {
-      let encontrados = 0;
+  // Filtro por tipo exacto
+  if (tipo) resultados = resultados.filter(m => m.tipo === tipo);
 
-      for (const mov of resultados.reverse()) {
-        const nombreProducto = await obtenerNombreProductoPorCodigo(mov.codigo);
-        const nombreMin = (nombreProducto || '').toLowerCase();
+  // Filtro por día (rango 00:00:00–23:59:59 local)
+  if (fechaHTML) {
+    const ini = new Date(fechaHTML); ini.setHours(0,0,0,0);
+    const fin = new Date(fechaHTML); fin.setHours(23,59,59,999);
+    resultados = resultados.filter(m => {
+      if (!m.fecha) return false;
+      const d = new Date(m.fecha);
+      return d >= ini && d <= fin;
+    });
+  }
 
-        if (filtroNombre && !nombreMin.includes(filtroNombre)) continue;
+  // Filtro por nombre (contiene, case-insensitive)
+  if (filtroNombre) {
+    resultados = resultados.filter(m => (nombreMap.get(m.codigo) || '')
+      .toLowerCase()
+      .includes(filtroNombre));
+  }
 
-        const tipo = mov.tipo.toUpperCase();
-        const mostrarCantidad = ['entrada', 'salida', 'registro'].includes(mov.tipo);
+  // Orden: más recientes primero
+  resultados.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
-        const div = document.createElement('div');
-        div.className = 'movimiento';
-        div.innerHTML = `
-  <p><strong>${tipo}</strong> - ${mov.fecha}</p>
-  <p>Producto: ${nombreProducto || mov.codigo}</p>
-  ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
-  <p>Usuario: ${mov.usuario || 'desconocido'}</p>
-  <p>Nota: ${mov.nota || mov.motivo || ''}</p>
-  <hr>
-`;
+  if (resultados.length === 0) {
+    contenedor.innerHTML = '<p>No se encontraron movimientos con los criterios seleccionados.</p>';
+    return;
+  }
 
-        contenedor.appendChild(div);
-        encontrados++;
-      }
+  const frag = document.createDocumentFragment();
 
-      if (encontrados === 0) {
-        contenedor.innerHTML = '<p>No se encontraron movimientos con ese nombre.</p>';
-      }
-    })();
-  };
+  for (const mov of resultados) {
+    const tipoUp = (mov.tipo || '').toUpperCase();
+    const fecha = fmtFechaLocal(mov.fecha);
+    const usuario = mov.usuario || 'desconocido';
+    const nota = mov.nota || mov.motivo || '';
+    const nombre = nombreMap.get(mov.codigo) || mov.codigo;
+    const mostrarCantidad = ['entrada', 'salida', 'registro'].includes(mov.tipo);
+
+    const div = document.createElement('div');
+    div.className = 'movimiento';
+    div.innerHTML = `
+      <p><strong>${tipoUp}</strong> - ${fecha}</p>
+      <p>Producto: ${nombre} <small>(${mov.codigo})</small></p>
+      ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
+      <p>Usuario: ${usuario}</p>
+      <p>Nota: ${nota}</p>
+      <hr>
+    `;
+    frag.appendChild(div);
+  }
+
+  contenedor.appendChild(frag);
 }
-
-
-
-function cargarSelectorDeProductos() {
-  const select = document.getElementById('productoMovimiento');
-  const buscador = document.getElementById('buscarProductoMovimiento');
-  select.innerHTML = '';
-
-  const blanco = document.createElement('option');
-  blanco.value = '';
-  blanco.textContent = '-- Selecciona un producto --';
-  select.appendChild(blanco);
-
-  const tx = db.transaction('productos', 'readonly');
-  const store = tx.objectStore('productos');
-  const req = store.getAll();
-
-  req.onsuccess = () => {
-    const productos = req.result;
-
-    // ✅ Esto ya incluye filtrado si buscador existe
-    renderizarOpcionesSelector(productos, select, buscador);
-
-    // ✅ Asignar cambio de selección
-    select.onchange = mostrarDatosProducto;
-  };
-}
-

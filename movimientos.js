@@ -1,13 +1,30 @@
 // movimientos.js - Módulo para registrar y visualizar movimientos de stock (atómico + idempotente)
 
 // ===========================
-// UTILIDADES
+// ADAPTERS / UTILIDADES
 // ===========================
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const uuid = () => (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 const fmtFechaLocal = iso => { try { return new Date(iso).toLocaleString(); } catch { return iso || ''; } };
 
-// Mutex multi-pestaña simple para evitar carreras
+// Adapter para compatibilidad con app.js (showScreen)
+window.mostrarPantalla = window.mostrarPantalla || function(id) {
+  if (typeof showScreen === 'function') return showScreen(id);
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById(id + 'Screen')?.classList.remove('hidden');
+};
+
+// Convierte distintos formatos de foto a Blob o deja string (dataURL/URL) tal cual
+function blobFromFoto(foto) {
+  if (!foto) return null;
+  if (Array.isArray(foto)) return new Blob([new Uint8Array(foto)], { type: 'image/jpeg' });
+  if (foto instanceof ArrayBuffer) return new Blob([new Uint8Array(foto)], { type: 'image/jpeg' });
+  if (ArrayBuffer.isView(foto))   return new Blob([new Uint8Array(foto.buffer)], { type: 'image/jpeg' });
+  if (typeof foto === 'string')   return foto; // usar directo
+  return null;
+}
+
+// Mutex multi-pestaña simple para evitar carreras de stock
 const STOCK_LOCK_KEY = 'barylie_stock_lock';
 async function acquireLock(timeoutMs = 3000, waitStep = 30) {
   const me = uuid();
@@ -22,8 +39,6 @@ async function acquireLock(timeoutMs = 3000, waitStep = 30) {
     }
     await sleep(waitStep);
   }
-  // Si prefieres no lanzar, devuelve un liberador no-op:
-  // return () => {};
   throw new Error('No se pudo adquirir lock de stock');
 }
 
@@ -57,22 +72,20 @@ async function aplicarMovimientoStock({ codigo, tipo, cantidad, motivo = '', usu
   if (!Number.isFinite(cantidad) || cantidad <= 0) throw new Error('Cantidad inválida');
   if (tipo !== 'entrada' && tipo !== 'salida') throw new Error('Tipo inválido');
 
-  const release = await acquireLock().catch(() => null); // si no quieres bloquear duro, usa catch y sigue
+  const release = await acquireLock().catch(() => null);
   try {
     const tx = db.transaction(['productos', 'movimientos'], 'readwrite');
     const productos = tx.objectStore('productos');
     const movimientos = tx.objectStore('movimientos');
 
-    // 1) Idempotencia: si ya existe movUid no repetir
+    // 1) Idempotencia por movUid
     movUid = movUid || uuid();
     let existe = false;
     try {
-      // si existe índice movUid úsalo
       const idx = movimientos.index('movUid');
       const reqCheck = idx.get(movUid);
       existe = await new Promise(res => { reqCheck.onsuccess = () => res(!!reqCheck.result); reqCheck.onerror = () => res(false); });
     } catch {
-      // si no existe índice, no podemos verificar rápido → seguimos (sin idempotencia fuerte)
       existe = false;
     }
     if (existe) return { ok: true, idempotente: true, movUid };
@@ -95,7 +108,7 @@ async function aplicarMovimientoStock({ codigo, tipo, cantidad, motivo = '', usu
     producto.stock = nuevoStock;
     productos.put(producto);
 
-    // 5) Registrar movimiento con movUid
+    // 5) Registrar movimiento
     const movimiento = {
       movUid,
       tipo,
@@ -123,19 +136,20 @@ function mostrarPantallaMovimientos() {
   cargarSelectorDeProductos();
   document.getElementById('formMovimiento').reset();
   document.getElementById('stockActual').textContent = '--';
+
   const prev = document.getElementById('previewMovimiento');
   if (prev) {
     if (prev.dataset.objurl) { URL.revokeObjectURL(prev.dataset.objurl); delete prev.dataset.objurl; }
     prev.removeAttribute('src');
   }
   document.getElementById('buscarProductoMovimiento').value = '';
-  // Si tienes este contador global:
   if (typeof mostrarTotalProductos === 'function') mostrarTotalProductos();
 }
 
 function cargarSelectorDeProductos() {
   const select = document.getElementById('productoMovimiento');
   const buscador = document.getElementById('buscarProductoMovimiento');
+  if (!select) return;
   select.innerHTML = '';
 
   const blanco = document.createElement('option');
@@ -152,7 +166,6 @@ function cargarSelectorDeProductos() {
 
     renderizarOpcionesSelector(productos, select, buscador);
 
-    // Filtro incremental (si no se “enganchó” ya adentro de renderizarOpcionesSelector)
     if (buscador && !buscador._hooked) {
       buscador._hooked = true;
       buscador.addEventListener('input', () => {
@@ -196,14 +209,13 @@ function mostrarDatosProducto() {
 
     if (preview) {
       if (preview.dataset.objurl) { URL.revokeObjectURL(preview.dataset.objurl); delete preview.dataset.objurl; }
-      if (prod.fotoProducto instanceof ArrayBuffer || ArrayBuffer.isView(prod.fotoProducto)) {
-        const ab = prod.fotoProducto instanceof ArrayBuffer ? prod.fotoProducto : prod.fotoProducto.buffer;
-        const blob = new Blob([new Uint8Array(ab)], { type: 'image/jpeg' });
-        const url = URL.createObjectURL(blob);
+      const foto = blobFromFoto(prod.fotoProducto);
+      if (typeof foto === 'string') {
+        preview.src = foto;
+      } else if (foto instanceof Blob) {
+        const url = URL.createObjectURL(foto);
         preview.src = url;
         preview.dataset.objurl = url;
-      } else if (typeof prod.fotoProducto === 'string') {
-        preview.src = prod.fotoProducto; // dataURL o URL
       } else {
         preview.removeAttribute('src');
       }
@@ -213,7 +225,9 @@ function mostrarDatosProducto() {
   };
 }
 
-// Modal de info del producto seleccionado
+// ===========================
+// MODAL INFO PRODUCTO
+// ===========================
 function verInfoProductoSeleccionado() {
   const prod = window.productoSeleccionado;
   if (!prod) return alert('No hay producto seleccionado');
@@ -242,15 +256,12 @@ function verInfoProducto(prod) {
   `;
 
   let urlTemp = null;
-  if (prod.fotoProducto) {
-    if (prod.fotoProducto instanceof ArrayBuffer || ArrayBuffer.isView(prod.fotoProducto)) {
-      const ab = prod.fotoProducto instanceof ArrayBuffer ? prod.fotoProducto : prod.fotoProducto.buffer;
-      const blob = new Blob([new Uint8Array(ab)], { type: 'image/jpeg' });
-      urlTemp = URL.createObjectURL(blob);
-      html += `<img src="${urlTemp}" alt="Foto del producto" style="max-width:100%;border-radius:8px;margin-top:10px;">`;
-    } else if (typeof prod.fotoProducto === 'string') {
-      html += `<img src="${prod.fotoProducto}" alt="Foto del producto" style="max-width:100%;border-radius:8px;margin-top:10px;">`;
-    }
+  const foto = blobFromFoto(prod.fotoProducto);
+  if (typeof foto === 'string') {
+    html += `<img src="${foto}" alt="Foto del producto" style="max-width:100%;border-radius:8px;margin-top:10px;">`;
+  } else if (foto instanceof Blob) {
+    urlTemp = URL.createObjectURL(foto);
+    html += `<img src="${urlTemp}" alt="Foto del producto" style="max-width:100%;border-radius:8px;margin-top:10px;">`;
   }
 
   const modal = document.createElement('div');
@@ -271,17 +282,22 @@ function verInfoProducto(prod) {
   content.style.borderRadius = '12px';
   content.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
   content.style.fontSize = '1em';
-  content.innerHTML = html + '<br><button class="cancelar" style="margin-top:15px;" onclick="this.parentNode.parentNode.remove()">✖️ Cerrar</button>';
+  content.innerHTML = html + '<br><button class="cancelar" style="margin-top:15px;">✖️ Cerrar</button>';
+
+  content.querySelector('button.cancelar').addEventListener('click', () => {
+    if (urlTemp) { URL.revokeObjectURL(urlTemp); urlTemp = null; }
+    modal.remove();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      if (urlTemp) { URL.revokeObjectURL(urlTemp); urlTemp = null; }
+      modal.remove();
+    }
+  });
 
   modal.appendChild(content);
   document.body.appendChild(modal);
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
-  modal.addEventListener('remove', () => {
-    if (urlTemp) URL.revokeObjectURL(urlTemp);
-  }, { once: true });
 }
 
 // ===========================
@@ -297,13 +313,26 @@ async function registrarMovimientoDesdeFormulario(e) {
   const usuario = JSON.parse(localStorage.getItem('usuarioActivo'))?.nombre || 'Desconocido';
 
   if (!codigo || !Number.isFinite(cantidad) || cantidad <= 0) {
-    mostrarPopupMovimiento('❌ Ingresa una cantidad válida.', 'error');
+    mostrarPopupMovimiento?.('❌ Ingresa una cantidad válida.', 'error');
     return;
   }
 
   try {
     const r = await aplicarMovimientoStock({ codigo, tipo, cantidad, motivo: nota, usuario });
-    mostrarPopupMovimiento(`✅ ${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada. 📦 Stock: ${r.stock}`, 'exito');
+
+    if (r.idempotente) {
+      // Si fue idempotente, relee el stock actual para mostrarlo
+      const tx = db.transaction('productos', 'readonly');
+      const prod = await new Promise(res => {
+        const g = tx.objectStore('productos').get(codigo);
+        g.onsuccess = () => res(g.result);
+        g.onerror = () => res(null);
+      });
+      const stock = prod?.stock ?? '—';
+      mostrarPopupMovimiento?.(`ℹ️ Movimiento ya registrado. 📦 Stock: ${stock}`, 'exito');
+    } else {
+      mostrarPopupMovimiento?.(`✅ ${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada. 📦 Stock: ${r.stock}`, 'exito');
+    }
 
     // Reset UI
     document.getElementById('formMovimiento').reset();
@@ -315,8 +344,9 @@ async function registrarMovimientoDesdeFormulario(e) {
     }
     document.getElementById('productoMovimiento').selectedIndex = 0;
     window.productoSeleccionado = null;
+
   } catch (err) {
-    mostrarPopupMovimiento(`❌ ${err.message || 'Error al registrar el movimiento'}`, 'error');
+    mostrarPopupMovimiento?.(`❌ ${err.message || 'Error al registrar el movimiento'}`, 'error');
   }
 }
 
@@ -346,8 +376,6 @@ async function cargarHistorialFiltrado() {
   ]);
 
   const mapa = new Map(prods.map(p => [p.codigo, p.nombre || '']));
-
-  // Orden descendente por fecha ISO
   movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
   const frag = document.createDocumentFragment();
@@ -403,7 +431,6 @@ async function aplicarFiltroHistorial() {
     });
   }
 
-  // más recientes primero
   resultados.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
   let hallados = 0;
@@ -438,11 +465,11 @@ async function aplicarFiltroHistorial() {
 }
 
 // ===========================
-// SELECTOR DE BÚSQUEDA AUXILIAR (si lo usas en otra pantalla)
+// SELECTOR DE BÚSQUEDA AUXILIAR
 // ===========================
 function productoDesdeBusquedaSeleccionado() {
   const select = document.getElementById('selectorBusqueda');
-  const id = select.value;
+  const id = select?.value;
   if (!id) return;
 
   const tx = db.transaction('productos', 'readonly');
@@ -478,7 +505,7 @@ function cargarSelectorBusqueda() {
   };
 }
 
-// Reutiliza tu función global si ya existe; si no, esta es segura:
+// Única versión para evitar duplicados entre archivos
 function renderizarOpcionesSelector(productos, selectElement, buscador = null) {
   if (!selectElement) return;
   const primera = selectElement.firstElementChild?.cloneNode(true);
