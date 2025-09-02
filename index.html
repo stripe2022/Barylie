@@ -231,7 +231,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('DOMContentLoaded', () => {
-    navigator.serviceWorker.register('/Barylie/service-worker.js', {
+    navigator.serviceWorker.register('/Barylie/sw.js', {
       updateViaCache: 'all',
       scope: '/Barylie/'
     }).then(reg => {
