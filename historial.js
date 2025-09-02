@@ -98,8 +98,8 @@ async function cargarHistorialFiltrado() {
 
 // Aplica filtros: tipo, día (YYYY-MM-DD) y nombre de producto (contiene)
 async function aplicarFiltroHistorial() {
-  const tipo = document.getElementById('filtroTipo')?.value || '';       // '' | 'entrada' | 'salida' | 'registro' | 'edicion'
-  const fechaHTML = document.getElementById('filtroFecha')?.value || ''; // 'YYYY-MM-DD'
+  const tipoSel = (document.getElementById('filtroTipo')?.value || '').toLowerCase(); // '', 'entrada', ...
+  const fechaHTML = document.getElementById('filtroFecha')?.value || '';              // 'YYYY-MM-DD'
   const filtroNombre = (document.getElementById('filtroNombre')?.value || '').trim().toLowerCase();
   const contenedor = document.getElementById('resultadosFiltrados');
   if (!contenedor) return;
@@ -110,45 +110,37 @@ async function aplicarFiltroHistorial() {
   const prodStore = tx.objectStore('productos');
 
   const [movs, prods] = await Promise.all([
-    new Promise(res => {
-      const r = movStore.getAll();
-      r.onsuccess = () => res(r.result || []);
-      r.onerror = () => res([]);
-    }),
-    new Promise(res => {
-      const r = prodStore.getAll();
-      r.onsuccess = () => res(r.result || []);
-      r.onerror = () => res([]);
-    })
+    new Promise(res => { const r = movStore.getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); }),
+    new Promise(res => { const r = prodStore.getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); })
   ]);
 
   const nombreMap = new Map(prods.map(p => [p.codigo, p.nombre || '']));
 
-  let resultados = movs;
+  // Normaliza fecha a string y tipo a minúsculas
+  const norm = m => ({
+    ...m,
+    fecha: (m.fecha instanceof Date) ? m.fecha.toISOString() : (m.fecha ? String(m.fecha) : ''),
+    _tipo: (m.tipo || '').toLowerCase()
+  });
 
-  // Filtro por tipo exacto
-  if (tipo) resultados = resultados.filter(m => m.tipo === tipo);
+  let resultados = movs.map(norm);
 
-  // Filtro por día (rango 00:00:00–23:59:59 local)
-  if (fechaHTML) {
-    const ini = new Date(fechaHTML); ini.setHours(0,0,0,0);
-    const fin = new Date(fechaHTML); fin.setHours(23,59,59,999);
+  // 1) Tipo (case-insensitive)
+  if (tipoSel) resultados = resultados.filter(m => m._tipo === tipoSel);
+
+  // 2) Fecha exacta por string (evita problemas de zona horaria)
+  if (fechaHTML) resultados = resultados.filter(m => (m.fecha || '').slice(0, 10) === fechaHTML);
+
+  // 3) Nombre contiene (si no hay nombre, usa código)
+  if (filtroNombre) {
     resultados = resultados.filter(m => {
-      if (!m.fecha) return false;
-      const d = new Date(m.fecha);
-      return d >= ini && d <= fin;
+      const nom = (nombreMap.get(m.codigo) || m.codigo || '').toLowerCase();
+      return nom.includes(filtroNombre);
     });
   }
 
-  // Filtro por nombre (contiene, case-insensitive)
-  if (filtroNombre) {
-    resultados = resultados.filter(m => (nombreMap.get(m.codigo) || '')
-      .toLowerCase()
-      .includes(filtroNombre));
-  }
-
   // Orden: más recientes primero
-  resultados.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  resultados.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
   if (resultados.length === 0) {
     contenedor.innerHTML = '<p>No se encontraron movimientos con los criterios seleccionados.</p>';
@@ -156,19 +148,18 @@ async function aplicarFiltroHistorial() {
   }
 
   const frag = document.createDocumentFragment();
-
   for (const mov of resultados) {
-    const tipoUp = (mov.tipo || '').toUpperCase();
-    const fecha = fmtFechaLocal(mov.fecha);
+    const tipoUp = (mov._tipo || '').toUpperCase();
+    const fechaBonita = fmtFechaLocal(mov.fecha); // usa la global definida en movimientos.js
     const usuario = mov.usuario || 'desconocido';
     const nota = mov.nota || mov.motivo || '';
     const nombre = nombreMap.get(mov.codigo) || mov.codigo;
-    const mostrarCantidad = ['entrada', 'salida', 'registro'].includes(mov.tipo);
+    const mostrarCantidad = ['entrada','salida','registro'].includes(mov._tipo);
 
     const div = document.createElement('div');
     div.className = 'movimiento';
     div.innerHTML = `
-      <p><strong>${tipoUp}</strong> - ${fecha}</p>
+      <p><strong>${tipoUp}</strong> - ${fechaBonita}</p>
       <p>Producto: ${nombre} <small>(${mov.codigo})</small></p>
       ${mostrarCantidad ? `<p>Cantidad: ${mov.cantidad}</p>` : ''}
       <p>Usuario: ${usuario}</p>
