@@ -11,9 +11,9 @@ window.mostrarPantalla = window.mostrarPantalla || function(id) {
   document.getElementById(id + 'Screen')?.classList.remove('hidden');
 };
 
-function fmtFechaLocal(iso) {
-  try { return new Date(iso).toLocaleString(); } catch { return iso || ''; }
-}
+//function fmtFechaLocal(iso) {
+//  try { return new Date(iso).toLocaleString(); } catch { return iso || ''; }
+//}
 
 // ===========================
 // PANTALLA HISTORIAL
