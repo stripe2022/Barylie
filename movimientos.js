@@ -132,19 +132,48 @@ async function aplicarMovimientoStock({ codigo, tipo, cantidad, motivo = '', usu
 // PANTALLA "MOVIMIENTOS"
 // ===========================
 function mostrarPantallaMovimientos() {
-  mostrarPantalla('movimiento');
-  cargarSelectorDeProductos();
-  document.getElementById('formMovimiento').reset();
-  document.getElementById('stockActual').textContent = '--';
+  // Oculta el nav y muestra la pantalla de movimientos
+  if (typeof mostrarPantalla === 'function') {
+    mostrarPantalla('movimiento', true);
+  } else {
+    // Fallback si no tienes la función unificada
+    document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+    document.getElementById('movimientoScreen')?.classList.remove('hidden');
+    document.getElementById('nav')?.classList.add('hidden');
+  }
+
+  // Reset UI
+  const form = document.getElementById('formMovimiento');
+  form?.reset();
+
+  const stockEl = document.getElementById('stockActual');
+  if (stockEl) stockEl.textContent = '--';
 
   const prev = document.getElementById('previewMovimiento');
   if (prev) {
-    if (prev.dataset.objurl) { URL.revokeObjectURL(prev.dataset.objurl); delete prev.dataset.objurl; }
+    if (prev.dataset.objurl) {
+      URL.revokeObjectURL(prev.dataset.objurl);
+      delete prev.dataset.objurl;
+    }
     prev.removeAttribute('src');
   }
-  document.getElementById('buscarProductoMovimiento').value = '';
-  if (typeof mostrarTotalProductos === 'function') mostrarTotalProductos();
+
+  const buscador = document.getElementById('buscarProductoMovimiento');
+  if (buscador) buscador.value = '';
+
+  // Cargar selector (después de reset)
+  if (typeof cargarSelectorDeProductos === 'function') {
+    cargarSelectorDeProductos();
+  }
+
+  // (Opcional) Enfocar el selector
+  document.getElementById('productoMovimiento')?.focus();
+
+  if (typeof mostrarTotalProductos === 'function') {
+    mostrarTotalProductos();
+  }
 }
+
 
 function cargarSelectorDeProductos() {
   const select = document.getElementById('productoMovimiento');

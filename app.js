@@ -123,6 +123,22 @@ function abrirDB() {
     console.error('Error al abrir la base de datos');
   };
 }
+// --- NAV / PANTALLAS UNIFICADO ---
+window.mostrarPantalla = function(id, ocultarNav = true) {
+  // Oculta todas las pantallas
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  // Muestra la solicitada
+  document.getElementById(id + 'Screen')?.classList.remove('hidden');
+  // Oculta/Muestra nav coherentemente
+  const nav = document.getElementById('nav');
+  if (nav) ocultarNav ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+};
+
+// Regresa al menú principal (siempre)
+window.volverAlMenu = function() {
+  document.querySelectorAll('.screen').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById('nav')?.classList.remove('hidden');
+};
 
 // ===========================
 // NAVEGACIÓN / PANTALLAS
